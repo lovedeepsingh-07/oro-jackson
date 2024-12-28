@@ -1,0 +1,13 @@
+version: "3"
+
+interval: 500ms
+
+dotenv: [".env"]
+
+tasks:
+  dev:
+    cmds:
+      - cargo run {{.CLI_ARGS}}
+  dev-serve:
+    cmds:
+      - cargo run serve
