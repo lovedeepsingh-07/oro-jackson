@@ -25,10 +25,8 @@ pub struct Serve {}
 #[derive(Debug, Clone)]
 pub struct Application {}
 impl Application {
-    pub fn new() -> Result<Application, String> {
+    pub fn new(data: Serve) -> Result<Application, String> {
+        println!("found some data: {:#?}", data);
         return Ok(Application {});
-    }
-    pub fn run(&self, data: Serve) {
-        println!("{:#?}", data);
     }
 }

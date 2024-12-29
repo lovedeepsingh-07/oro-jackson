@@ -9,5 +9,14 @@ tasks:
     cmds:
       - cargo run {{.CLI_ARGS}}
   dev-serve:
+    watch: true
+    sources:
+      - "./**/*.rs"
+      - "./**/*.html"
+      - "./**/*.js"
     cmds:
-      - cargo run serve
+      - cargo run serve {{.CLI_ARGS}}
+    status:
+      - "exit 1"
+    cleanup:
+      - rm -rf .task/checksum/dev-serve
