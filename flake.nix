@@ -20,7 +20,7 @@
           pkgs.nixfmt-classic; # formatter for .nix files, just run `nix fmt .` to format the entire directory
         devShell = pkgs.mkShell {
           packages = [
-		  	pkgs.go-task
+            pkgs.go-task
             deno_pkgs.deno
             rust_pkgs.rustc
             rust_pkgs.cargo

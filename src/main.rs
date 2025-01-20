@@ -6,6 +6,7 @@ mod utils;
 
 // imports
 use axum;
+use axum_embed;
 use clap::Parser;
 use std::sync::{Arc, RwLock};
 use tokio;
@@ -31,12 +32,16 @@ async fn main() {
 
             // main application router
             let app_router: axum::Router = axum::Router::new()
-                .route(
+                .nest_service(
                     // static files route
-                    "/static/:filepath",
-                    axum::routing::get(handlers::static_route),
+                    "/static",
+                    axum_embed::ServeEmbed::<utils::StaticAssets>::new(),
                 )
                 .route("/", axum::routing::get(handlers::home_page))
+                .route(
+                    "/vault/*note_path",
+                    axum::routing::get(handlers::vault_page),
+                )
                 .with_state(app_state);
 
             // bind a `TcpListener` to an address and port

@@ -19,14 +19,16 @@ pub enum SubCommands {
 // ----- `Serve` subcommand
 #[derive(Args, Debug, Clone)]
 #[command(about = "Serve the application")]
-pub struct Serve {}
+pub struct Serve {
+    #[arg(long, help = "path location of your obsidian vault")]
+    pub vault: String,
+}
 
 // ----- `Application` object
 #[derive(Debug, Clone)]
 pub struct Application {}
 impl Application {
-    pub fn new(data: Serve) -> Result<Application, String> {
-        println!("found some data: {:#?}", data);
+    pub fn new(_data: Serve) -> Result<Application, String> {
         return Ok(Application {});
     }
 }

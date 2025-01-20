@@ -1,22 +1,26 @@
 // imports
 use rust_embed;
+use std::{fs, path::Path};
 
 // ----- `StaticAssets` object
-#[derive(rust_embed::Embed)]
-#[folder = "static"]
+#[derive(rust_embed::RustEmbed, Clone)]
+#[folder = "static/"]
 pub struct StaticAssets;
 
-// get files contents from embedded files i.e `static` directory
-pub fn get_embedded_file(filepath: String) -> Option<Result<String, String>> {
-    match StaticAssets::get(filepath.as_str()) {
-        Some(file_content) => {
-            return Some(match String::from_utf8(file_content.data.to_vec()) {
-                Ok(safe_value) => Ok(safe_value),
-                Err(e) => Err(e.to_string()),
-            });
-        }
-        None => {
-            return None;
+// implement a way to map the entire obsidian vault into a hashmap kind of thing maybe
+#[allow(dead_code)]
+pub fn map_vault(vault_path_string: String) {
+    let vault_path = Path::new(&vault_path_string);
+    if vault_path.is_dir() {
+        match fs::read_dir(vault_path) {
+            Ok(entries) => {
+                for entry in entries {
+                    if let Ok(entry) = entry {
+                        println!("{:#?}", entry.path().to_string_lossy().to_string());
+                    }
+                }
+            }
+            Err(e) => println!("Error reading directory: {}", e),
         }
     }
 }
