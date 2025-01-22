@@ -44,11 +44,10 @@ pub async fn vault_page(
             ));
         }
     };
-    println!("{:#?}", app_state);
-
-    let page_data = String::from("");
     println!("{:#?}", note_path);
-    // render HTML struct
+
+    let page_data = serde_json::to_string_pretty(&app_state.clone().vault_map).unwrap();
+
     let html = match (templates::routes::VaultPage { page_data }.render()) {
         Ok(safe_html) => safe_html,
         Err(e) => {

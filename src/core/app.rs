@@ -1,5 +1,7 @@
 // imports
+use crate::utils;
 use clap::{Args, Parser, Subcommand};
+use std::collections::HashMap;
 
 // ----- `CLIArgs` struct
 #[derive(Parser, Debug, Clone)]
@@ -26,9 +28,12 @@ pub struct Serve {
 
 // ----- `Application` object
 #[derive(Debug, Clone)]
-pub struct Application {}
+pub struct Application {
+    pub vault_map: HashMap<String, utils::VaultObject>,
+}
 impl Application {
-    pub fn new(_data: Serve) -> Result<Application, String> {
-        return Ok(Application {});
+    pub fn new(data: Serve) -> Result<Application, String> {
+        let vault_map = utils::map_vault_object(data.vault).unwrap();
+        return Ok(Application { vault_map });
     }
 }
