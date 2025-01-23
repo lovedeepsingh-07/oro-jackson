@@ -20,3 +20,6 @@ tasks:
       - "exit 1"
     cleanup:
       - rm -rf .task/checksum/dev-serve
+  dev-tw:
+    cmds:
+      - npx tailwindcss -i ./tailwind.css -o ./static/style.css --minify --watch

@@ -7,6 +7,21 @@ use std::{collections::HashMap, fs, path};
 #[folder = "static/"]
 pub struct StaticAssets;
 
+// get files contents from embedded files i.e `static` directory
+pub fn get_embedded_file(filepath: String) -> Option<Result<String, String>> {
+    match StaticAssets::get(filepath.as_str()) {
+        Some(file_content) => {
+            return Some(match String::from_utf8(file_content.data.to_vec()) {
+                Ok(safe_value) => Ok(safe_value),
+                Err(e) => Err(e.to_string()),
+            });
+        }
+        None => {
+            return None;
+        }
+    }
+}
+
 // implement a way to map the entire obsidian vault into a hashmap kind of thing maybe
 #[allow(dead_code)]
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]

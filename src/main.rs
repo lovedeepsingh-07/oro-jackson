@@ -6,7 +6,6 @@ mod utils;
 
 // imports
 use axum;
-use axum_embed;
 use clap::Parser;
 use std::sync::{Arc, RwLock};
 use tokio;
@@ -32,10 +31,10 @@ async fn main() {
 
             // main application router
             let app_router: axum::Router = axum::Router::new()
-                .nest_service(
+                .route(
                     // static files route
-                    "/static",
-                    axum_embed::ServeEmbed::<utils::StaticAssets>::new(),
+                    "/static/*filepath",
+                    axum::routing::get(handlers::static_route),
                 )
                 .route("/", axum::routing::get(handlers::home_page))
                 .route(
