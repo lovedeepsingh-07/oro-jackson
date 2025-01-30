@@ -37,9 +37,11 @@ async fn main() {
                     axum::routing::get(handlers::static_route),
                 )
                 .route("/", axum::routing::get(handlers::home_page))
+                .route("/vault", axum::routing::get(handlers::vault_page))
+                .route("/vault/", axum::routing::get(handlers::vault_page))
                 .route(
                     "/vault/*note_path",
-                    axum::routing::get(handlers::vault_page),
+                    axum::routing::get(handlers::vault_note_page),
                 )
                 .with_state(app_state);
 

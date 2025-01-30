@@ -1,7 +1,6 @@
 // imports
 use crate::utils;
 use clap::{Args, Parser, Subcommand};
-use std::collections::HashMap;
 
 // ----- `CLIArgs` struct
 #[derive(Parser, Debug, Clone)]
@@ -29,7 +28,7 @@ pub struct Serve {
 // ----- `Application` object
 #[derive(Debug, Clone)]
 pub struct Application {
-    pub vault_map: HashMap<String, utils::VaultObject>,
+    pub vault_map: Vec<utils::VaultObject>,
 }
 impl Application {
     pub fn new(data: Serve) -> Result<Application, String> {

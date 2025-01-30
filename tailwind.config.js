@@ -68,5 +68,5 @@ export default {
   theme: {
     extend: {},
   },
-  plugins: [addIconSelectors(["mdi"])],
+  plugins: [addIconSelectors(["mdi"]), require("@tailwindcss/typography")],
 };

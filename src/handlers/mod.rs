@@ -2,7 +2,12 @@
 use crate::{core, templates, utils};
 use askama_axum::Template;
 use axum::{self, response::IntoResponse};
-use std::sync::{Arc, RwLock};
+use markdown;
+use std::{
+    fs,
+    sync::{Arc, RwLock},
+};
+use urlencoding;
 
 // GET (/static) route handler
 pub async fn static_route(
@@ -65,11 +70,10 @@ pub async fn home_page() -> Result<axum::response::Response, (axum::http::Status
         .into_response());
 }
 
-// GET (/vault/*note_path) route handler
+// GET (/vault) route handler
 #[axum_macros::debug_handler]
 pub async fn vault_page(
     axum::extract::State(app_state): axum::extract::State<Arc<RwLock<core::app::Application>>>,
-    axum::extract::Path(note_path): axum::extract::Path<String>,
 ) -> Result<axum::response::Response, (axum::http::StatusCode, String)> {
     let app_state = match app_state.write() {
         Ok(safe_app_state) => safe_app_state,
@@ -81,11 +85,54 @@ pub async fn vault_page(
             ));
         }
     };
-    println!("{:#?}", note_path);
 
-    let page_data = serde_json::to_string_pretty(&app_state.clone().vault_map).unwrap();
+    let html = match (templates::routes::VaultPage {
+        page_data: app_state.vault_map.clone(),
+    }
+    .render())
+    {
+        Ok(safe_html) => safe_html,
+        Err(e) => {
+            println!("Failed to render HTML, Error {:#?}", e);
+            return Err((
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                String::from("Failed to render HTML"),
+            ));
+        }
+    };
 
-    let html = match (templates::routes::VaultPage { page_data }.render()) {
+    return Ok((
+        [(
+            axum::http::header::CONTENT_TYPE,
+            String::from("text/html; charset=utf-8"),
+        )],
+        html,
+    )
+        .into_response());
+}
+
+// GET (/vault/*note_path) route handler
+#[axum_macros::debug_handler]
+pub async fn vault_note_page(
+    axum::extract::State(app_state): axum::extract::State<Arc<RwLock<core::app::Application>>>,
+    axum::extract::Path(note_path): axum::extract::Path<String>,
+) -> Result<axum::response::Response, (axum::http::StatusCode, String)> {
+    let _app_state = match app_state.write() {
+        Ok(safe_app_state) => safe_app_state,
+        Err(e) => {
+            println!("Failed to get application state, Error {:#?}", e);
+            return Err((
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                String::from("Failed to get application state"),
+            ));
+        }
+    };
+
+    let page_data = markdown::to_html(
+        &fs::read_to_string(urlencoding::decode(&note_path).unwrap().to_string()).unwrap(),
+    );
+
+    let html = match (templates::routes::VaultNotePage { page_data }.render()) {
         Ok(safe_html) => safe_html,
         Err(e) => {
             println!("Failed to render HTML, Error {:#?}", e);

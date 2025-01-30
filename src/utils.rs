@@ -1,6 +1,7 @@
 // imports
 use rust_embed;
-use std::{collections::HashMap, fs, path};
+use std::{fs, path};
+use urlencoding;
 
 // ----- `StaticAssets` object
 #[derive(rust_embed::RustEmbed, Clone)]
@@ -33,20 +34,22 @@ pub enum VaultObject {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct VaultObjectFile {
     pub name: String,
+    pub slug: String,
     pub path: String,
 }
 #[allow(dead_code)]
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct VaultObjectFolder {
     pub name: String,
+    pub slug: String,
     pub path: String,
-    pub children: HashMap<String, VaultObject>,
+    pub children: Vec<VaultObject>,
 }
-pub fn map_vault_object(data: String) -> Result<HashMap<String, VaultObject>, String> {
+pub fn map_vault_object(data: String) -> Result<Vec<VaultObject>, String> {
     let vault_path_string = format!("{}", data);
     let vault_path = path::Path::new(&vault_path_string);
     let ignores = Vec::from([".git", ".obsidian"]);
-    let mut vault_map: HashMap<String, VaultObject> = HashMap::new();
+    let mut vault_vec = Vec::new();
 
     if vault_path.is_dir() {
         match fs::read_dir(vault_path) {
@@ -57,25 +60,21 @@ pub fn map_vault_object(data: String) -> Result<HashMap<String, VaultObject>, St
                         let entry_name = entry.file_name().to_string_lossy().to_string();
                         if !ignores.contains(&entry_name.as_str()) {
                             if entry_path.is_dir() {
-                                vault_map.insert(
-                                    entry_name.clone(),
-                                    VaultObject::Folder(VaultObjectFolder {
-                                        name: entry_name.clone(),
-                                        path: entry_path.to_string_lossy().to_string(),
-                                        children: map_vault_object(
-                                            entry_path.to_string_lossy().to_string(),
-                                        )
-                                        .unwrap(),
-                                    }),
-                                );
+                                vault_vec.push(VaultObject::Folder(VaultObjectFolder {
+                                    name: entry_name.clone(),
+                                    slug: name_to_slug(entry_path.to_string_lossy().to_string()),
+                                    path: entry_path.to_string_lossy().to_string(),
+                                    children: map_vault_object(
+                                        entry_path.to_string_lossy().to_string(),
+                                    )
+                                    .unwrap(),
+                                }));
                             } else {
-                                vault_map.insert(
-                                    entry_name.clone(),
-                                    VaultObject::File(VaultObjectFile {
-                                        name: entry_name.clone(),
-                                        path: entry_path.to_string_lossy().to_string(),
-                                    }),
-                                );
+                                vault_vec.push(VaultObject::File(VaultObjectFile {
+                                    name: entry_name.clone(),
+                                    slug: name_to_slug(entry_path.to_string_lossy().to_string()),
+                                    path: entry_path.to_string_lossy().to_string(),
+                                }));
                             }
                         }
                     }
@@ -84,5 +83,9 @@ pub fn map_vault_object(data: String) -> Result<HashMap<String, VaultObject>, St
             Err(e) => eprintln!("Error reading directory: {}", e),
         }
     }
-    return Ok(vault_map);
+    return Ok(vault_vec);
+}
+
+pub fn name_to_slug(input: String) -> String {
+    return urlencoding::encode(&input).to_string();
 }
