@@ -1,53 +1,38 @@
-// modules
-mod core;
-mod handlers;
-mod templates;
-mod utils;
-
 // imports
 use axum;
 use clap::Parser;
+use oro_jackson::{self, cli, handlers, server};
 use std::sync::{Arc, RwLock};
 use tokio;
 
 #[tokio::main]
 async fn main() {
     // get CLI arguments
-    let args = core::app::CLIArgs::parse();
+    let args = cli::CLIArgs::parse();
 
     // match sub-commands
     match &args.sub_commands {
-        core::app::SubCommands::Serve(data) => {
-            // application state for the main router
-            let app_state = Arc::new(RwLock::new(
-                match core::app::Application::new(data.clone()) {
-                    Ok(safe_app) => safe_app,
+        // `serve` subcommand
+        cli::SubCommands::Serve(data) => {
+            // web state for the main router
+            let web_state = Arc::new(RwLock::new(
+                match server::WebState::new(data.content.clone()) {
+                    Ok(safe_web_state) => safe_web_state,
                     Err(e) => {
-                        eprintln!("Failed to create application state object, Error: {:#?}", e);
+                        eprintln!("Failed to create web state object, Error: {:#?}", e);
                         std::process::exit(1);
                     }
                 },
             ));
 
-            // main application router
-            let app_router: axum::Router = axum::Router::new()
-                .route(
-                    // static files route
-                    "/static/*filepath",
-                    axum::routing::get(handlers::static_route),
-                )
-                .route("/", axum::routing::get(handlers::home_page))
-                .route("/vault", axum::routing::get(handlers::vault_page))
-                .route("/vault/", axum::routing::get(handlers::vault_page))
-                .route(
-                    "/vault/*note_path",
-                    axum::routing::get(handlers::vault_note_page),
-                )
-                .with_state(app_state);
+            // main router
+            let router: axum::Router = axum::Router::new()
+                .route("/", axum::routing::get(handlers::home_route))
+                .with_state(web_state);
 
             // bind a `TcpListener` to an address and port
             let listener = match tokio::net::TcpListener::bind(
-                core::ADDRESS.to_string() + ":" + core::PORT.to_string().as_str(),
+                oro_jackson::ADDRESS.to_string() + ":" + oro_jackson::PORT.to_string().as_str(),
             )
             .await
             {
@@ -59,10 +44,10 @@ async fn main() {
             };
 
             // ----- announce the application startup -----
-            println!("running on {}:{}", core::ADDRESS, core::PORT);
+            println!("running on {}:{}", oro_jackson::ADDRESS, oro_jackson::PORT);
 
             // actually start the server listener
-            match axum::serve(listener, app_router).await {
+            match axum::serve(listener, router).await {
                 Ok(_) => {}
                 Err(e) => {
                     eprintln!(
@@ -72,6 +57,10 @@ async fn main() {
                     std::process::exit(1);
                 }
             };
+        }
+        // `build` subcommand
+        cli::SubCommands::Build(data) => {
+            println!("{:#?}", data);
         }
     }
 }

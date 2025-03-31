@@ -1,35 +1,31 @@
 {
-  description = "a flake for oro-jackson dev environment";
+  description = "oro-jackson";
   inputs = {
     nixpkgs.url =
-      "github:nixos/nixpkgs/6c90912761c43e22b6fb000025ab96dd31c971ff";
-    # deno_2_1_4-pkgs.url =
-    #   "github:nixos/nixpkgs/4989a246d7a390a859852baddb1013f825435cee";
-    node_22_10_0-pkgs.url =
-      "github:nixos/nixpkgs/566e53c2ad750c84f6d31f9ccb9d00f823165550";
-    rust_1_82_0-pkgs.url =
-      "github:nixos/nixpkgs/566e53c2ad750c84f6d31f9ccb9d00f823165550";
+      "github:nixos/nixpkgs/ebe2788eafd539477f83775ef93c3c7e244421d3";
+    rust-overlay.url = "github:oxalica/rust-overlay";
+    rust_1_84_0-pkgs.url =
+      "github:nixos/nixpkgs/d98abf5cf5914e5e4e9d57205e3af55ca90ffc1d";
+    bun_1_2_0-pkgs.url =
+      "github:nixos/nixpkgs/f898cbfddfab52593da301a397a17d0af801bbc";
     flake-utils.url = "github:numtide/flake-utils";
   };
-  outputs = { self, nixpkgs, flake-utils, ... }@inputs:
+  outputs = { self, nixpkgs, rust-overlay, flake-utils, ... }@inputs:
     flake-utils.lib.eachDefaultSystem (system:
       let
-        pkgs = import nixpkgs { inherit system; };
-        # deno_pkgs = inputs.deno_2_1_4-pkgs.legacyPackages.${system};
-        node_pkgs = inputs.node_22_10_0-pkgs.legacyPackages.${system};
-        rust_pkgs = inputs.rust_1_82_0-pkgs.legacyPackages.${system};
+        overlays = [ (import rust-overlay) ];
+        pkgs = import nixpkgs { inherit system overlays; };
+        bun-pkgs = inputs.bun_1_2_0-pkgs.legacyPackages.${system};
+        # rust-pkgs = inputs.rust_1_84_0-pkgs.legacyPackages.${system};
       in {
-        formatter =
-          pkgs.nixfmt-classic; # formatter for .nix files, just run `nix fmt .` to format the entire directory
+        formatter = pkgs.nixfmt-classic;
         devShell = pkgs.mkShell {
           packages = [
-            pkgs.go-task
-			# deno_pkgs.deno
-			node_pkgs.nodejs_22
-            rust_pkgs.rustc
-            rust_pkgs.cargo
-            rust_pkgs.rustfmt
-            rust_pkgs.just
+		  	pkgs.go-task
+
+            bun-pkgs.bun
+
+            pkgs.rust-bin.stable."1.84.0".default
           ];
         };
       });

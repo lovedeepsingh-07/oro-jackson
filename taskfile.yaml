@@ -1,25 +1,16 @@
 version: "3"
-
 interval: 500ms
-
 dotenv: [".env"]
-
 tasks:
-  dev:
+  # serve the content
+  serve:
     cmds:
-      - cargo run {{.CLI_ARGS}}
-  dev-serve:
-    watch: true
-    sources:
-      - "./**/*.rs"
-      - "./**/*.html"
-      - "./**/*.js"
+      - cargo run serve --content ../bookshelf/content {{.CLI_ARGS}}
+  # build the content
+  build:
     cmds:
-      - cargo run serve {{.CLI_ARGS}}
-    status:
-      - "exit 1"
-    cleanup:
-      - rm -rf .task/checksum/dev-serve
-  dev-tw:
+      - cargo run build --content ../bookshelf/content {{.CLI_ARGS}}
+  # run tests
+  test:
     cmds:
-      - npx tailwindcss -i ./tailwind.css -o ./static/style.css --minify --watch
+      - cargo test -- --nocapture {{.CLI_ARGS}}

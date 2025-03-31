@@ -1,5 +1,10 @@
 // modules
-pub mod app;
+pub mod cli;
+pub mod content;
+pub mod error;
+pub mod handlers;
+pub mod server;
+pub mod utils;
 
 // constants
 pub const ADDRESS: std::net::Ipv4Addr = std::net::Ipv4Addr::new(0, 0, 0, 0);
