@@ -1,4 +1,5 @@
-use crate::server;
+use crate::{server, templates};
+use askama::Template;
 use axum::{self, response::IntoResponse};
 use std::{
     fs, path,
@@ -29,28 +30,32 @@ pub async fn home_route(
     options.insert(pulldown_cmark::Options::ENABLE_MATH);
     options.insert(pulldown_cmark::Options::ENABLE_YAML_STYLE_METADATA_BLOCKS);
     options.insert(pulldown_cmark::Options::ENABLE_GFM);
+    options.insert(pulldown_cmark::Options::ENABLE_WIKILINKS);
     let parser = pulldown_cmark::Parser::new_ext(&mark_file_content, options);
     let mut output_html = String::new();
-
     pulldown_cmark::html::push_html(&mut output_html, parser);
+
+    let html = match (templates::PageTemplate {
+        content: output_html,
+    }
+    .render())
+    {
+        Ok(safe_html) => safe_html,
+        Err(e) => {
+            println!("Failed to render HTML, Error {:#?}", e);
+            return Err((
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                String::from("Failed to render HTML"),
+            ));
+        }
+    };
+
     return Ok((
         [(
             axum::http::header::CONTENT_TYPE,
             String::from("text/html; charset=utf-8"),
         )],
-        output_html,
+        html,
     )
         .into_response());
-
-    // let mut options = comrak::Options::default();
-    // options.extension.math_dollars = true;
-    // options.extension.front_matter_delimiter = Some("---".to_owned());
-    // return Ok((
-    //     [(
-    //         axum::http::header::CONTENT_TYPE,
-    //         String::from("text/html; charset=utf-8"),
-    //     )],
-    //     comrak::markdown_to_html(&mark_file_content, &options),
-    // )
-    //     .into_response());
 }

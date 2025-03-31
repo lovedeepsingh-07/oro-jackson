@@ -16,7 +16,10 @@ async fn main() {
         cli::SubCommands::Serve(data) => {
             // web state for the main router
             let web_state = Arc::new(RwLock::new(
-                match server::WebState::new(data.content.clone()) {
+                match server::WebState::builder()
+                    .content_path(data.content.clone())
+                    .build()
+                {
                     Ok(safe_web_state) => safe_web_state,
                     Err(e) => {
                         eprintln!("Failed to create web state object, Error: {:#?}", e);

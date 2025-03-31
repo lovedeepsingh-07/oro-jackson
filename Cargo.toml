@@ -16,8 +16,7 @@ dotenvy = "0.15.7"
 tokio = { version = "1", features = ["full"] }
 axum = "0.7.5"
 axum-macros = "0.4.2"
-askama = { version = "0.12.1", features = ["serde-json"] }
-askama_axum = "0.4.0"
+askama = { version = "0.13.0" }
 rust-embed="8.5.0"
 mime_guess = "2.0.5"
 serde = { version = "1.0.170", features = ["derive"] }
@@ -28,6 +27,7 @@ urlencoding = "2.1.3"
 rand = "0.8"
 thiserror = "2"
 pulldown-cmark = "0.13.0"
-markdown = "1.0.0-alpha.23"
-comrak = "0.37"
 tempfile = "3"
+hotwatch = "0.5.0"
+ammonia = "4"
+bon = "3.5.1"
