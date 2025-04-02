@@ -1,7 +1,7 @@
 // imports
 use axum;
 use clap::Parser;
-use oro_jackson::{self, cli, handlers, server};
+use oro_jackson::{self, cli, content, handlers, server};
 use std::sync::{Arc, RwLock};
 use tokio;
 
@@ -63,7 +63,20 @@ async fn main() {
         }
         // `build` subcommand
         cli::SubCommands::Build(data) => {
-            println!("{:#?}", data);
+            match content::build_content()
+                .content_path(&data.content)
+                .output_path(&data.output)
+                .call()
+            {
+                Ok(safe_content_map) => safe_content_map,
+                Err(e) => {
+                    eprintln!(
+                        "Failed to map the content folder, Error: {:#?}",
+                        e.to_string()
+                    );
+                    std::process::exit(1);
+                }
+            };
         }
     }
 }

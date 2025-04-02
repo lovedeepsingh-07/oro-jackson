@@ -39,4 +39,6 @@ pub struct Serve {
 pub struct Build {
     #[arg(long, help = "path location of your content folder")]
     pub content: String,
+    #[arg(long, help = "path location of output folder")]
+    pub output: String,
 }

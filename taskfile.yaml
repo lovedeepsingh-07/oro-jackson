@@ -9,7 +9,7 @@ tasks:
   # build the content
   build:
     cmds:
-      - cargo run build --content ../bookshelf/content {{.CLI_ARGS}}
+      - cargo run build --content ../bookshelf/content --output ./build {{.CLI_ARGS}}
   # run tests
   test:
     cmds:
