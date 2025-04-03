@@ -1,9 +1,11 @@
 // imports
 use axum;
 use clap::Parser;
-use oro_jackson::{self, cli, content, handlers, server};
+use hotwatch;
+use oro_jackson::{self, cli, content, server};
 use std::sync::{Arc, RwLock};
 use tokio;
+use tower_livereload;
 
 #[tokio::main]
 async fn main() {
@@ -14,10 +16,30 @@ async fn main() {
     match &args.sub_commands {
         // `serve` subcommand
         cli::SubCommands::Serve(data) => {
+            let content_folder = data.content.clone();
+            let output_folder = data.output.clone();
+
+            // build content
+            match content::build_content()
+                .content_path(content_folder.clone().as_str())
+                .output_path(output_folder.clone().as_str())
+                .call()
+            {
+                Ok(_) => {}
+                Err(e) => {
+                    eprintln!(
+                        "Failed to map the content folder, Error: {:#?}",
+                        e.to_string()
+                    );
+                    std::process::exit(1);
+                }
+            };
+
             // web state for the main router
             let web_state = Arc::new(RwLock::new(
                 match server::WebState::builder()
-                    .content_path(data.content.clone())
+                    .content_path(content_folder.clone())
+                    .output_path(output_folder.clone())
                     .build()
                 {
                     Ok(safe_web_state) => safe_web_state,
@@ -28,10 +50,45 @@ async fn main() {
                 },
             ));
 
+            // live-reload setup
+            let live_reload_layer = tower_livereload::LiveReloadLayer::new();
+            let reloader = live_reload_layer.reloader();
+
             // main router
             let router: axum::Router = axum::Router::new()
-                .route("/", axum::routing::get(handlers::home_route))
-                .with_state(web_state);
+                .route("/", axum::routing::get(oro_jackson::handlers::index_route))
+                .route(
+                    "/*filepath",
+                    axum::routing::get(oro_jackson::handlers::main_route),
+                )
+                .with_state(web_state)
+                .layer(live_reload_layer);
+
+            // watching for file changes in `content` directory
+            let mut watcher =
+                hotwatch::Hotwatch::new_with_custom_delay(std::time::Duration::from_millis(100))
+                    .unwrap();
+            watcher
+                .watch(content_folder.clone(), move |_event: hotwatch::Event| {
+                    // build content
+                    match content::build_content()
+                        .content_path(content_folder.clone().as_str())
+                        .output_path(output_folder.clone().as_str())
+                        .call()
+                    {
+                        Ok(_) => {}
+                        Err(e) => {
+                            eprintln!(
+                                "Failed to map the content folder, Error: {:#?}",
+                                e.to_string()
+                            );
+                            std::process::exit(1);
+                        }
+                    };
+                    // reload server
+                    reloader.reload();
+                })
+                .unwrap();
 
             // bind a `TcpListener` to an address and port
             let listener = match tokio::net::TcpListener::bind(
@@ -68,7 +125,7 @@ async fn main() {
                 .output_path(&data.output)
                 .call()
             {
-                Ok(safe_content_map) => safe_content_map,
+                Ok(_) => {}
                 Err(e) => {
                     eprintln!(
                         "Failed to map the content folder, Error: {:#?}",

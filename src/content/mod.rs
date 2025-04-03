@@ -89,7 +89,6 @@ pub fn build_content(content_path: &str, output_path: &str) -> Result<(), error:
                         .replace(".md", ".html"),
                 )
                 .call();
-            println!("{:#?}", html_file);
 
             let folder = match path::Path::new(&html_file).parent() {
                 Some(safe_folder) => safe_folder,

@@ -5,7 +5,7 @@ tasks:
   # serve the content
   serve:
     cmds:
-      - cargo run serve --content ../bookshelf/content {{.CLI_ARGS}}
+      - cargo run serve --content ../bookshelf/content --output ./build {{.CLI_ARGS}}
   # build the content
   build:
     cmds:

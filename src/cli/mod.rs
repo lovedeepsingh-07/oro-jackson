@@ -31,6 +31,8 @@ pub enum SubCommands {
 pub struct Serve {
     #[arg(long, help = "path location of your content folder")]
     pub content: String,
+    #[arg(long, help = "path location of output folder")]
+    pub output: String,
 }
 
 // ----- `Build` subcommand
