@@ -3,6 +3,7 @@
 mod tests;
 
 use crate::{error, templates};
+use ammonia;
 use askama::Template;
 use bon;
 use std::{fs, path};
@@ -43,7 +44,7 @@ pub fn generate_html(markdown_content: &str) -> Result<String, String> {
     pulldown_cmark::html::push_html(&mut output_html, parser);
 
     match (templates::PageTemplate {
-        content: output_html,
+        content: ammonia::clean(&output_html),
     }
     .render())
     {
@@ -53,12 +54,60 @@ pub fn generate_html(markdown_content: &str) -> Result<String, String> {
 }
 
 #[bon::builder]
-pub fn build_content(content_path: &str, output_path: &str) -> Result<(), error::ContentError> {
-    let content_dir = path::Path::new(content_path);
+pub fn build_content(
+    content_folder_path: &str,
+    output_folder_path: &str,
+    input_path_string: &str,
+) -> Result<(), error::ContentError> {
+    let input_path = path::Path::new(input_path_string);
 
-    if content_dir.is_dir() {
-        let mut content_files: Vec<String> = Vec::new();
-        for entry in walkdir::WalkDir::new(content_dir)
+    if input_path.is_file() {
+        let file_path = input_path_string;
+        let html_file = path_to_slug()
+            .input(
+                file_path
+                    .replace(
+                        fs::canonicalize(path::Path::new(content_folder_path))
+                            .unwrap()
+                            .to_string_lossy()
+                            .to_string()
+                            .as_str(),
+                        fs::canonicalize(path::Path::new(output_folder_path))
+                            .unwrap()
+                            .to_string_lossy()
+                            .to_string()
+                            .as_str(),
+                    )
+                    .replace(".md", ".html"),
+            )
+            .call();
+
+        let folder = match path::Path::new(&html_file).parent() {
+            Some(safe_folder) => safe_folder,
+            None => return Err(error::ContentError::ParentFolderCreateError),
+        };
+        let _ = fs::create_dir_all(folder);
+
+        let markdown_content = match fs::read_to_string(file_path) {
+            Ok(safe_md_content) => safe_md_content,
+            Err(e) => return Err(error::ContentError::FileContentReadError(e.to_string())),
+        };
+        let html = match generate_html().markdown_content(&markdown_content).call() {
+            Ok(safe_html) => safe_html,
+            Err(e) => return Err(error::ContentError::HTMLRenderError(e.to_string())),
+        };
+
+        match fs::write(&html_file, html) {
+            Ok(_) => {}
+            Err(e) => return Err(error::ContentError::FileWriteError(e.to_string())),
+        };
+
+        println!("Successfully built {:#?}", html_file);
+
+        return Ok(());
+    } else if input_path.is_dir() {
+        let mut output_files: Vec<String> = Vec::new();
+        for entry in walkdir::WalkDir::new(input_path)
             .into_iter()
             .filter_entry(|e| !is_hidden_file().entry(e).call())
         {
@@ -67,7 +116,7 @@ pub fn build_content(content_path: &str, output_path: &str) -> Result<(), error:
                     let entry_path = safe_entry.path().display().to_string();
 
                     if is_markdown_file().file_path(&entry_path).call() {
-                        content_files.push(safe_entry.path().display().to_string())
+                        output_files.push(safe_entry.path().display().to_string())
                     }
                 }
                 Err(e) => {
@@ -79,13 +128,13 @@ pub fn build_content(content_path: &str, output_path: &str) -> Result<(), error:
             }
         }
 
-        let mut html_files: Vec<String> = Vec::with_capacity(content_files.len());
+        let mut html_files: Vec<String> = Vec::with_capacity(output_files.len());
 
-        for md_file in content_files {
+        for md_file in output_files {
             let html_file = path_to_slug()
                 .input(
                     md_file
-                        .replace(content_path, output_path)
+                        .replace(content_folder_path, output_folder_path)
                         .replace(".md", ".html"),
                 )
                 .call();
@@ -109,15 +158,16 @@ pub fn build_content(content_path: &str, output_path: &str) -> Result<(), error:
                 Ok(_) => {}
                 Err(e) => return Err(error::ContentError::FileWriteError(e.to_string())),
             };
+            println!("Successfully built {:#?}", html_file);
 
             html_files.push(html_file.to_string());
         }
 
         return Ok(());
     } else {
-        return Err(error::ContentError::InvalidContentDirectory(format!(
-            "the provided folder, {:#?} is not a directory",
-            content_dir.to_string_lossy().to_string()
+        return Err(error::ContentError::InvalidInputPath(format!(
+            "the provided folder, {:#?} is not a file or a directory directory",
+            input_path_string
         )));
     }
 }

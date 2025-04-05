@@ -21,8 +21,9 @@ async fn main() {
 
             // build content
             match content::build_content()
-                .content_path(content_folder.clone().as_str())
-                .output_path(output_folder.clone().as_str())
+                .content_folder_path(content_folder.clone().as_str())
+                .output_folder_path(output_folder.clone().as_str())
+                .input_path_string(content_folder.clone().as_str())
                 .call()
             {
                 Ok(_) => {}
@@ -61,6 +62,10 @@ async fn main() {
                     "/*filepath",
                     axum::routing::get(oro_jackson::handlers::main_route),
                 )
+                .route(
+                    "/favicon.ico",
+                    axum::routing::get(|| async { axum::http::StatusCode::NO_CONTENT }),
+                )
                 .with_state(web_state)
                 .layer(live_reload_layer);
 
@@ -69,24 +74,36 @@ async fn main() {
                 hotwatch::Hotwatch::new_with_custom_delay(std::time::Duration::from_millis(100))
                     .unwrap();
             watcher
-                .watch(content_folder.clone(), move |_event: hotwatch::Event| {
-                    // build content
-                    match content::build_content()
-                        .content_path(content_folder.clone().as_str())
-                        .output_path(output_folder.clone().as_str())
-                        .call()
-                    {
-                        Ok(_) => {}
-                        Err(e) => {
-                            eprintln!(
-                                "Failed to map the content folder, Error: {:#?}",
-                                e.to_string()
-                            );
-                            std::process::exit(1);
+                .watch(content_folder.clone(), move |event: hotwatch::Event| {
+                    match event.kind {
+                        hotwatch::EventKind::Modify(hotwatch::notify::event::ModifyKind::Data(
+                            _,
+                        ))
+                        | hotwatch::EventKind::Create(_) => {
+                            match content::build_content()
+                                .content_folder_path(content_folder.clone().as_str())
+                                .output_folder_path(output_folder.clone().as_str())
+                                .input_path_string(
+                                    event.paths[0].to_string_lossy().to_string().as_str(),
+                                )
+                                .call()
+                            {
+                                Ok(_) => {}
+                                Err(e) => {
+                                    eprintln!(
+                                        "Failed to map the content folder, Error: {:#?}",
+                                        e.to_string()
+                                    );
+                                    std::process::exit(1);
+                                }
+                            };
+                            // reload server
+                            reloader.reload();
                         }
-                    };
-                    // reload server
-                    reloader.reload();
+                        // handle remove event
+                        hotwatch::EventKind::Remove(_) => {}
+                        _ => {}
+                    }
                 })
                 .unwrap();
 
@@ -121,8 +138,9 @@ async fn main() {
         // `build` subcommand
         cli::SubCommands::Build(data) => {
             match content::build_content()
-                .content_path(&data.content)
-                .output_path(&data.output)
+                .content_folder_path(data.content.clone().as_str())
+                .output_folder_path(data.output.clone().as_str())
+                .input_path_string(data.content.clone().as_str())
                 .call()
             {
                 Ok(_) => {}
