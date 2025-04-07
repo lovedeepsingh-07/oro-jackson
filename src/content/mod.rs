@@ -1,4 +1,3 @@
-// modules
 #[cfg(test)]
 mod tests;
 
@@ -6,8 +5,27 @@ use crate::{error, templates};
 use ammonia;
 use askama::Template;
 use bon;
+use rust_embed;
 use std::{fs, path};
 use walkdir;
+
+#[derive(rust_embed::RustEmbed, Clone)]
+#[folder = "_static/"]
+pub struct StaticAssets;
+
+pub fn get_embedded_file(filepath: String) -> Option<Result<String, String>> {
+    match StaticAssets::get(filepath.as_str()) {
+        Some(file_content) => {
+            return Some(match String::from_utf8(file_content.data.to_vec()) {
+                Ok(safe_value) => Ok(safe_value),
+                Err(e) => Err(e.to_string()),
+            });
+        }
+        None => {
+            return None;
+        }
+    }
+}
 
 #[bon::builder]
 pub fn path_to_slug(input: String) -> String {

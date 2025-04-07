@@ -16,15 +16,13 @@
         overlays = [ (import rust-overlay) ];
         pkgs = import nixpkgs { inherit system overlays; };
         bun-pkgs = inputs.bun_1_2_0-pkgs.legacyPackages.${system};
-        # rust-pkgs = inputs.rust_1_84_0-pkgs.legacyPackages.${system};
+        rust-pkgs = inputs.rust_1_84_0-pkgs.legacyPackages.${system};
       in {
         formatter = pkgs.nixfmt-classic;
         devShell = pkgs.mkShell {
           packages = [
-		  	pkgs.go-task
-
+		  	rust-pkgs.just
             bun-pkgs.bun
-
             pkgs.rust-bin.stable."1.84.0".default
           ];
         };

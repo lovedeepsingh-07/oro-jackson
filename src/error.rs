@@ -1,7 +1,19 @@
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-pub enum WebStateError {}
+pub enum ServerError {
+    #[error("failed to create web state, Error: {0}")]
+    WebStateError(String),
+
+    #[error("failed to build content, Error: {0}")]
+    ContentBuildError(String),
+
+    #[error("Failed to bind TCP Listener to address, Error: {0}")]
+    TCPListenerBindError(String),
+
+    #[error("Failed to start the serrver listener, Error: {0}")]
+    ServerListenerStartError(String),
+}
 
 #[derive(Debug, Error)]
 pub enum ContentError {

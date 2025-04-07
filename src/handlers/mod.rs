@@ -1,9 +1,43 @@
-use crate::server;
+use crate::{content, server};
 use axum::{self, response::IntoResponse};
 use std::{
     fs,
     sync::{Arc, RwLock},
 };
+
+pub async fn static_route(
+    axum::extract::Path(filepath): axum::extract::Path<String>,
+) -> Result<axum::response::Response, (axum::http::StatusCode, String)> {
+    let file_contents = match content::get_embedded_file(filepath.to_string()) {
+        Some(some_file_contents) => match some_file_contents {
+            Ok(safe_file_contents) => safe_file_contents,
+            Err(e) => {
+                println!(
+                    "Failed to convert file contents into readable string format, Error: {:#?}",
+                    e
+                );
+                return Err((
+                    axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                    String::from("Failed to convert file contents into readable string format"),
+                ));
+            }
+        },
+        None => {
+            return Err((
+                axum::http::StatusCode::NOT_FOUND,
+                String::from("404 Not Found!"),
+            ))
+        }
+    };
+
+    let file_type = mime_guess::from_path(filepath.to_string()).first_or_octet_stream();
+
+    return Ok((
+        [(axum::http::header::CONTENT_TYPE, file_type.to_string())],
+        file_contents,
+    )
+        .into_response());
+}
 
 pub async fn main_route(
     axum::extract::State(web_state): axum::extract::State<Arc<RwLock<server::WebState>>>,
