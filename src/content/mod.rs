@@ -9,7 +9,7 @@ use rust_embed;
 use std::{fs, path};
 use walkdir;
 
-#[derive(rust_embed::RustEmbed, Clone)]
+#[derive(rust_embed::RustEmbed, Clone, Debug)]
 #[folder = "_static/"]
 pub struct StaticAssets;
 
@@ -69,6 +69,43 @@ pub fn generate_html(markdown_content: &str) -> Result<String, String> {
         Ok(safe_html) => return Ok(safe_html),
         Err(e) => return Err(e.to_string()),
     };
+}
+
+#[bon::builder]
+pub fn build_static_assets(output_folder_path: String) -> Result<(), error::ContentError> {
+    let static_subdir_path = format!("{}/_static", output_folder_path);
+    for item in StaticAssets::iter() {
+        let item_path = format!("{}/{}", static_subdir_path, item);
+
+        let item_contents = match get_embedded_file(item.to_string()) {
+            Some(some_file_contents) => match some_file_contents {
+                Ok(safe_file_contents) => safe_file_contents,
+                Err(e) => {
+                    return Err(error::ContentError::FileContentToStringConvertError(
+                        e.to_string(),
+                    ));
+                }
+            },
+            None => {
+                return Err(error::ContentError::StaticFileNotFoundError(
+                    item.to_string(),
+                ))
+            }
+        };
+
+        let folder = match path::Path::new(&item_path).parent() {
+            Some(safe_folder) => safe_folder,
+            None => return Err(error::ContentError::ParentFolderCreateError),
+        };
+        let _ = fs::create_dir_all(folder);
+
+        match fs::write(&item_path, item_contents) {
+            Ok(_) => {}
+            Err(e) => return Err(error::ContentError::FileWriteError(e.to_string())),
+        };
+    }
+
+    return Ok(());
 }
 
 #[bon::builder]
@@ -138,7 +175,7 @@ pub fn build_content(
                     }
                 }
                 Err(e) => {
-                    println!(
+                    eprintln!(
                         "WARNING: Unable to access file from content folder, Error: {:#?}",
                         e.to_string()
                     )

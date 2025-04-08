@@ -31,7 +31,20 @@ async fn main() {
                 Ok(_) => {}
                 Err(e) => {
                     eprintln!(
-                        "Failed to map the content folder, Error: {:#?}",
+                        "Failed to build the content folder, Error: {:#?}",
+                        e.to_string()
+                    );
+                    std::process::exit(1);
+                }
+            };
+            match content::build_static_assets()
+                .output_folder_path(data.output.clone())
+                .call()
+            {
+                Ok(_) => {}
+                Err(e) => {
+                    eprintln!(
+                        "Failed to build the content folder, Error: {:#?}",
                         e.to_string()
                     );
                     std::process::exit(1);

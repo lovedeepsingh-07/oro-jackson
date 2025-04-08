@@ -1,43 +1,10 @@
-use crate::{content, server};
+use crate::server;
 use axum::{self, response::IntoResponse};
+use mime_guess;
 use std::{
     fs,
     sync::{Arc, RwLock},
 };
-
-pub async fn static_route(
-    axum::extract::Path(filepath): axum::extract::Path<String>,
-) -> Result<axum::response::Response, (axum::http::StatusCode, String)> {
-    let file_contents = match content::get_embedded_file(filepath.to_string()) {
-        Some(some_file_contents) => match some_file_contents {
-            Ok(safe_file_contents) => safe_file_contents,
-            Err(e) => {
-                println!(
-                    "Failed to convert file contents into readable string format, Error: {:#?}",
-                    e
-                );
-                return Err((
-                    axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-                    String::from("Failed to convert file contents into readable string format"),
-                ));
-            }
-        },
-        None => {
-            return Err((
-                axum::http::StatusCode::NOT_FOUND,
-                String::from("404 Not Found!"),
-            ))
-        }
-    };
-
-    let file_type = mime_guess::from_path(filepath.to_string()).first_or_octet_stream();
-
-    return Ok((
-        [(axum::http::header::CONTENT_TYPE, file_type.to_string())],
-        file_contents,
-    )
-        .into_response());
-}
 
 pub async fn main_route(
     axum::extract::State(web_state): axum::extract::State<Arc<RwLock<server::WebState>>>,
@@ -54,28 +21,53 @@ pub async fn main_route(
         }
     };
 
-    let file_content =
-        match fs::read_to_string(format!("{}/{}.html", web_state.output_path, filepath)) {
-            Ok(safe_contents) => safe_contents,
-            Err(e) => {
-                println!(
-                    "Failed to failed to read html file contents, Error: {:#?}",
-                    e
-                );
-                return Err((
-                    axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-                    String::from("Failed to failed to read html file contents"),
-                ));
-            }
-        };
-    return Ok((
-        [(
-            axum::http::header::CONTENT_TYPE,
-            String::from("text/html; charset=utf-8"),
-        )],
-        file_content,
-    )
-        .into_response());
+    if filepath.starts_with("_static") {
+        let file_contents =
+            match fs::read_to_string(format!("{}/{}", web_state.output_path, filepath)) {
+                Ok(safe_contents) => safe_contents,
+                Err(e) => {
+                    println!(
+                        "Failed to failed to read static file contents, Error: {:#?}",
+                        e
+                    );
+                    return Err((
+                        axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                        String::from("Failed to failed to read static file contents"),
+                    ));
+                }
+            };
+
+        let file_type = mime_guess::from_path(filepath.to_string()).first_or_octet_stream();
+
+        return Ok((
+            [(axum::http::header::CONTENT_TYPE, file_type.to_string())],
+            file_contents,
+        )
+            .into_response());
+    } else {
+        let file_contents =
+            match fs::read_to_string(format!("{}/{}.html", web_state.output_path, filepath)) {
+                Ok(safe_contents) => safe_contents,
+                Err(e) => {
+                    println!(
+                        "Failed to failed to read html file contents, Error: {:#?}",
+                        e
+                    );
+                    return Err((
+                        axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                        String::from("Failed to failed to read html file contents"),
+                    ));
+                }
+            };
+        return Ok((
+            [(
+                axum::http::header::CONTENT_TYPE,
+                String::from("text/html; charset=utf-8"),
+            )],
+            file_contents,
+        )
+            .into_response());
+    }
 }
 
 pub async fn index_route(

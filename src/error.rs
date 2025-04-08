@@ -8,6 +8,9 @@ pub enum ServerError {
     #[error("failed to build content, Error: {0}")]
     ContentBuildError(String),
 
+    #[error("failed to build static assets, Error: {0}")]
+    StaticAssetsBuildError(String),
+
     #[error("Failed to bind TCP Listener to address, Error: {0}")]
     TCPListenerBindError(String),
 
@@ -31,4 +34,13 @@ pub enum ContentError {
 
     #[error("failed to write content to file, Error: {0}")]
     FileWriteError(String),
+
+    #[error("failed to build static assets, Error: {0}")]
+    StaticAssetsBuildError(String),
+
+    #[error("failed to convert file contents into readable string format, Error: {0}")]
+    FileContentToStringConvertError(String),
+
+    #[error("no such file in the embedded static assets, File: {0}")]
+    StaticFileNotFoundError(String),
 }

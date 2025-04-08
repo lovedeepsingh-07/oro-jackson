@@ -43,6 +43,14 @@ pub async fn serve(server_data: cli::Serve) -> Result<(), error::ServerError> {
         Err(e) => return Err(error::ServerError::ContentBuildError(e.to_string())),
     };
 
+    match content::build_static_assets()
+        .output_folder_path(server_data.output.clone())
+        .call()
+    {
+        Ok(_) => {}
+        Err(e) => return Err(error::ServerError::StaticAssetsBuildError(e.to_string())),
+    };
+
     let web_state = Arc::new(RwLock::new(
         match WebState::builder()
             .content_path(content_folder.clone())
@@ -60,10 +68,6 @@ pub async fn serve(server_data: cli::Serve) -> Result<(), error::ServerError> {
     let router: axum::Router = axum::Router::new()
         .route("/", axum::routing::get(handlers::index_route))
         .route("/*filepath", axum::routing::get(handlers::main_route))
-        .route(
-            "/_static/*filepath",
-            axum::routing::get(handlers::static_route),
-        )
         .route(
             "/favicon.ico",
             axum::routing::get(|| async { axum::http::StatusCode::NO_CONTENT }),
