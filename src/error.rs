@@ -16,6 +16,9 @@ pub enum ServerError {
 
     #[error("Failed to start the serrver listener, Error: {0}")]
     ServerListenerStartError(String),
+
+    #[error("failed to build index files for the folder pages, Error: {0}")]
+    IndexFilesBuildError(String),
 }
 
 #[derive(Debug, Error)]
@@ -43,4 +46,13 @@ pub enum ContentError {
 
     #[error("no such file in the embedded static assets, File: {0}")]
     StaticFileNotFoundError(String),
+
+    #[error("failed to build index files for the folder pages, Error: {0}")]
+    IndexFilesBuildError(String),
+
+    #[error("failed to read directory entry for subfiles, Error: {0}")]
+    ReadDirectoryEntryError(String),
+
+    #[error("failed to canonicalize file path, Error: {0}")]
+    FilePathCanonicalizeError(String),
 }

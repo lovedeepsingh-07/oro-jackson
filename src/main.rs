@@ -37,6 +37,21 @@ async fn main() {
                     std::process::exit(1);
                 }
             };
+
+            match content::build_index_files()
+                .output_folder_path(data.output.clone())
+                .call()
+            {
+                Ok(_) => {}
+                Err(e) => {
+                    eprintln!(
+                        "Failed to build index files for the folder pages, Error: {:#?}",
+                        e.to_string()
+                    );
+                    std::process::exit(1);
+                }
+            }
+
             match content::build_static_assets()
                 .output_folder_path(data.output.clone())
                 .call()

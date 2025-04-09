@@ -1,0 +1,10 @@
+{% extends "./base.html" %}
+{% block page_content %}
+
+<div>
+	{% for subfile in subfiles %}
+	<a href="{{subfile.href}}">{{subfile.name}}</p>
+	{% endfor %}
+</div>
+
+{% endblock %}

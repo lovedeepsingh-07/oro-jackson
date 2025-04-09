@@ -2,7 +2,7 @@ use crate::server;
 use axum::{self, response::IntoResponse};
 use mime_guess;
 use std::{
-    fs,
+    fs, path,
     sync::{Arc, RwLock},
 };
 
@@ -45,8 +45,12 @@ pub async fn main_route(
         )
             .into_response());
     } else {
-        let file_contents =
-            match fs::read_to_string(format!("{}/{}.html", web_state.output_path, filepath)) {
+        let curr_file_string = format!("{}/{}.html", web_state.output_path, filepath);
+        let curr_file_path = path::Path::new(&curr_file_string);
+        let curr_file_index_string = format!("{}/{}/index.html", web_state.output_path, filepath);
+        let curr_file_index_path = path::Path::new(&curr_file_index_string);
+        if curr_file_path.exists() {
+            let file_contents = match fs::read_to_string(curr_file_string) {
                 Ok(safe_contents) => safe_contents,
                 Err(e) => {
                     println!(
@@ -55,18 +59,49 @@ pub async fn main_route(
                     );
                     return Err((
                         axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-                        String::from("Failed to failed to read html file contents"),
+                        String::from("Failed to failed to read html file contents, here"),
                     ));
                 }
             };
-        return Ok((
-            [(
-                axum::http::header::CONTENT_TYPE,
-                String::from("text/html; charset=utf-8"),
-            )],
-            file_contents,
-        )
-            .into_response());
+            return Ok((
+                [(
+                    axum::http::header::CONTENT_TYPE,
+                    String::from("text/html; charset=utf-8"),
+                )],
+                file_contents,
+            )
+                .into_response());
+        } else if curr_file_index_path.exists() {
+            let file_contents = match fs::read_to_string(curr_file_index_string) {
+                Ok(safe_contents) => safe_contents,
+                Err(e) => {
+                    println!(
+                        "Failed to failed to read html file contents, Error: {:#?}",
+                        e
+                    );
+                    return Err((
+                        axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                        String::from(
+                            "Failed to failed to read html file contents, not there, here",
+                        ),
+                    ));
+                }
+            };
+            return Ok((
+                [(
+                    axum::http::header::CONTENT_TYPE,
+                    String::from("text/html; charset=utf-8"),
+                )],
+                file_contents,
+            )
+                .into_response());
+        } else {
+            println!("No such file or directory, File: {:#?}", filepath);
+            return Err((
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                String::from("No such file or directory"),
+            ));
+        }
     }
 }
 

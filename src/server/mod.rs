@@ -43,6 +43,16 @@ pub async fn serve(server_data: cli::Serve) -> Result<(), error::ServerError> {
         Err(e) => return Err(error::ServerError::ContentBuildError(e.to_string())),
     };
 
+    match content::build_index_files()
+        .output_folder_path(output_folder.clone())
+        .call()
+    {
+        Ok(_) => {}
+        Err(e) => {
+            return Err(error::ServerError::IndexFilesBuildError(e.to_string()));
+        }
+    }
+
     match content::build_static_assets()
         .output_folder_path(server_data.output.clone())
         .call()
