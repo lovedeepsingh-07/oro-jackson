@@ -1,70 +1,47 @@
-// imports
 use clap::Parser;
-use oro_jackson::{cli, content, server};
+use color_eyre::{
+    self,
+    eyre::{self, WrapErr},
+};
+use oro_jackson::{cli, content, error, server};
 use tokio;
 
 #[tokio::main]
-async fn main() {
+async fn main() -> eyre::Result<(), error::Error> {
+    color_eyre::install()?;
+    tracing_subscriber::fmt()
+        .with_ansi(true)
+        .with_max_level(tracing::Level::DEBUG)
+        .init();
+
     let args = cli::CLIArgs::parse();
 
     match &args.sub_commands {
         cli::SubCommands::Serve(server_data) => {
-            match server::serve()
+            server::serve()
                 .server_data(server_data.clone())
                 .call()
                 .await
-            {
-                Ok(_) => {}
-                Err(e) => {
-                    eprintln!("Failed to start the server, Error: {0}", e.to_string());
-                    std::process::exit(1);
-                }
-            }
+                .wrap_err("failed to start the server")?;
         }
         cli::SubCommands::Build(data) => {
-            match content::build_content()
+            content::build_content()
                 .content_folder_path(data.content.clone().as_str())
                 .output_folder_path(data.output.clone().as_str())
                 .input_path_string(data.content.clone().as_str())
                 .call()
-            {
-                Ok(_) => {}
-                Err(e) => {
-                    eprintln!(
-                        "Failed to build the content folder, Error: {:#?}",
-                        e.to_string()
-                    );
-                    std::process::exit(1);
-                }
-            };
+                .wrap_err("failed to build content")?;
 
-            match content::build_index_files()
+            content::build_index_files()
                 .output_folder_path(data.output.clone())
                 .call()
-            {
-                Ok(_) => {}
-                Err(e) => {
-                    eprintln!(
-                        "Failed to build index files for the folder pages, Error: {:#?}",
-                        e.to_string()
-                    );
-                    std::process::exit(1);
-                }
-            }
+                .wrap_err("failed to build index files for folders")?;
 
-            match content::build_static_assets()
+            content::build_static_assets()
                 .output_folder_path(data.output.clone())
                 .call()
-            {
-                Ok(_) => {}
-                Err(e) => {
-                    eprintln!(
-                        "Failed to build the content folder, Error: {:#?}",
-                        e.to_string()
-                    );
-                    std::process::exit(1);
-                }
-            };
+                .wrap_err("failed to build static assets")?;
         }
-    }
+    };
+    return Ok(());
 }

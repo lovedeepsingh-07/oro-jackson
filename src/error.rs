@@ -1,58 +1,92 @@
-use thiserror::Error;
+use askama;
+use axum::{self, response::IntoResponse};
+use color_eyre::{self, eyre};
+use hotwatch;
+use thiserror;
+use tracing;
 
-#[derive(Debug, Error)]
-pub enum ServerError {
-    #[error("failed to create web state, Error: {0}")]
-    WebStateError(String),
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error(transparent)]
+    Io(#[from] std::io::Error),
 
-    #[error("failed to build content, Error: {0}")]
-    ContentBuildError(String),
+    #[error(transparent)]
+    HTMLTemplateRenderError(#[from] askama::Error),
 
-    #[error("failed to build static assets, Error: {0}")]
-    StaticAssetsBuildError(String),
+    #[error("not found, {0}")]
+    NotFound(String),
 
-    #[error("Failed to bind TCP Listener to address, Error: {0}")]
-    TCPListenerBindError(String),
+    #[error("invalid input, {0}")]
+    InvalidInput(String),
 
-    #[error("Failed to start the serrver listener, Error: {0}")]
-    ServerListenerStartError(String),
+    #[error(transparent)]
+    Utf8DecodeError(#[from] std::string::FromUtf8Error),
 
-    #[error("failed to build index files for the folder pages, Error: {0}")]
-    IndexFilesBuildError(String),
+    #[error(transparent)]
+    HotwatchError(#[from] hotwatch::Error),
+
+    #[error(transparent)]
+    Other(#[from] eyre::Report),
 }
 
-#[derive(Debug, Error)]
-pub enum ContentError {
-    #[error("provided input path is not a valid file or a directory, Error: {0}")]
-    InvalidInputPath(String),
+// Tell axum how to convert `Error` into a response.
+impl Error {
+    fn response(&self) -> axum::response::Response {
+        match self {
+            Self::HTMLTemplateRenderError(_) => (
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                "failed to render HTML tempalte".to_string(),
+            )
+                .into_response(),
+            Self::NotFound(e) => (
+                axum::http::StatusCode::NOT_FOUND,
+                format!("not found: {:#?}", e.to_string()),
+            )
+                .into_response(),
+            _ => (
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                "something went wrong".to_string(),
+            )
+                .into_response(),
+        }
+    }
+}
 
-    #[error("failed to read file contents, Error: {0}")]
-    FileContentReadError(String),
+pub type HandlerResult<T, E = HandlerReport> = color_eyre::Result<T, E>;
+pub struct HandlerReport(eyre::Report);
 
-    #[error("failed to render HTML template, Error: {0}")]
-    HTMLRenderError(String),
+impl std::fmt::Debug for HandlerReport {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
 
-    #[error("failed to create parent folder")]
-    ParentFolderCreateError,
+impl<E> From<E> for HandlerReport
+where
+    E: Into<color_eyre::Report>,
+{
+    fn from(err: E) -> Self {
+        Self(err.into())
+    }
+}
 
-    #[error("failed to write content to file, Error: {0}")]
-    FileWriteError(String),
+// Tell axum how to convert `Report` into a response.
+impl axum::response::IntoResponse for HandlerReport {
+    fn into_response(self) -> axum::response::Response {
+        let err = self.0;
+        let err_string = format!("{:?}", err);
 
-    #[error("failed to build static assets, Error: {0}")]
-    StaticAssetsBuildError(String),
+        tracing::error!("{}", err_string);
 
-    #[error("failed to convert file contents into readable string format, Error: {0}")]
-    FileContentToStringConvertError(String),
+        if let Some(err) = err.downcast_ref::<Error>() {
+            return err.response();
+        }
 
-    #[error("no such file in the embedded static assets, File: {0}")]
-    StaticFileNotFoundError(String),
-
-    #[error("failed to build index files for the folder pages, Error: {0}")]
-    IndexFilesBuildError(String),
-
-    #[error("failed to read directory entry for subfiles, Error: {0}")]
-    ReadDirectoryEntryError(String),
-
-    #[error("failed to canonicalize file path, Error: {0}")]
-    FilePathCanonicalizeError(String),
+        // Fallback
+        (
+            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+            "Something went wrong".to_string(),
+        )
+            .into_response()
+    }
 }

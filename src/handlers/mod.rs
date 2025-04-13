@@ -1,41 +1,20 @@
-use crate::server;
+use crate::{error, server};
 use axum::{self, response::IntoResponse};
+use color_eyre::eyre::WrapErr;
 use mime_guess;
-use std::{
-    fs, path,
-    sync::{Arc, RwLock},
-};
+use std::{fs, path, sync::Arc};
+use tokio::sync::RwLock;
 
 pub async fn main_route(
     axum::extract::State(web_state): axum::extract::State<Arc<RwLock<server::WebState>>>,
     axum::extract::Path(filepath): axum::extract::Path<String>,
-) -> Result<axum::response::Response, (axum::http::StatusCode, String)> {
-    let web_state = match web_state.write() {
-        Ok(safe_web_state) => safe_web_state,
-        Err(e) => {
-            println!("Failed to get web state, Error {:#?}", e);
-            return Err((
-                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-                String::from("Failed to get web state"),
-            ));
-        }
-    };
+) -> error::HandlerResult<axum::response::Response> {
+    let web_state = web_state.write().await;
 
     if filepath.starts_with("_static") {
-        let file_contents =
-            match fs::read_to_string(format!("{}/{}", web_state.output_path, filepath)) {
-                Ok(safe_contents) => safe_contents,
-                Err(e) => {
-                    println!(
-                        "Failed to failed to read static file contents, Error: {:#?}",
-                        e
-                    );
-                    return Err((
-                        axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-                        String::from("Failed to failed to read static file contents"),
-                    ));
-                }
-            };
+        // serve a static file
+        let file_contents = fs::read_to_string(format!("{}/{}", web_state.output_path, filepath))
+            .wrap_err("failed to read contents of a static file")?;
 
         let file_type = mime_guess::from_path(filepath.to_string()).first_or_octet_stream();
 
@@ -50,19 +29,9 @@ pub async fn main_route(
         let curr_file_index_string = format!("{}/{}/index.html", web_state.output_path, filepath);
         let curr_file_index_path = path::Path::new(&curr_file_index_string);
         if curr_file_path.exists() {
-            let file_contents = match fs::read_to_string(curr_file_string) {
-                Ok(safe_contents) => safe_contents,
-                Err(e) => {
-                    println!(
-                        "Failed to failed to read html file contents, Error: {:#?}",
-                        e
-                    );
-                    return Err((
-                        axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-                        String::from("Failed to failed to read html file contents, here"),
-                    ));
-                }
-            };
+            // serve a page file
+            let file_contents = fs::read_to_string(curr_file_string)
+                .wrap_err("failed to read contents of a page file")?;
             return Ok((
                 [(
                     axum::http::header::CONTENT_TYPE,
@@ -72,21 +41,10 @@ pub async fn main_route(
             )
                 .into_response());
         } else if curr_file_index_path.exists() {
-            let file_contents = match fs::read_to_string(curr_file_index_string) {
-                Ok(safe_contents) => safe_contents,
-                Err(e) => {
-                    println!(
-                        "Failed to failed to read html file contents, Error: {:#?}",
-                        e
-                    );
-                    return Err((
-                        axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-                        String::from(
-                            "Failed to failed to read html file contents, not there, here",
-                        ),
-                    ));
-                }
-            };
+            // serve a folder index file
+            let file_contents = fs::read_to_string(curr_file_index_string)
+                .wrap_err("failed to read contents of a folder index file")?;
+
             return Ok((
                 [(
                     axum::http::header::CONTENT_TYPE,
@@ -96,42 +54,22 @@ pub async fn main_route(
             )
                 .into_response());
         } else {
-            println!("No such file or directory, File: {:#?}", filepath);
-            return Err((
-                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-                String::from("No such file or directory"),
-            ));
+            // no such file
+            return Err(error::Error::NotFound(format!(
+                "no such file or directory, file: {:#?}",
+                filepath
+            )))?;
         }
     }
 }
 
 pub async fn index_route(
     axum::extract::State(web_state): axum::extract::State<Arc<RwLock<server::WebState>>>,
-) -> Result<axum::response::Response, (axum::http::StatusCode, String)> {
-    let web_state = match web_state.write() {
-        Ok(safe_web_state) => safe_web_state,
-        Err(e) => {
-            println!("Failed to get web state, Error {:#?}", e);
-            return Err((
-                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-                String::from("Failed to get web state"),
-            ));
-        }
-    };
+) -> error::HandlerResult<axum::response::Response> {
+    let web_state = web_state.write().await;
 
-    let file_content = match fs::read_to_string(format!("{}/index.html", web_state.output_path)) {
-        Ok(safe_contents) => safe_contents,
-        Err(e) => {
-            println!(
-                "Failed to failed to read html file contents, Error: {:#?}",
-                e
-            );
-            return Err((
-                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-                String::from("Failed to failed to read html file contents"),
-            ));
-        }
-    };
+    let file_content = fs::read_to_string(format!("{}/index.html", web_state.output_path))
+        .wrap_err("failed to read contents of the index(home) file")?;
     return Ok((
         [(
             axum::http::header::CONTENT_TYPE,

@@ -1,9 +1,12 @@
 use crate::{cli, content, error, handlers};
 use axum;
 use bon;
+use color_eyre::eyre::{self, WrapErr};
 use hotwatch;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
+use tokio::{self, sync::RwLock};
 use tower_livereload;
+use tracing;
 
 #[cfg(test)]
 mod tests;
@@ -20,7 +23,7 @@ pub struct WebState {
 #[bon::bon]
 impl WebState {
     #[builder]
-    pub fn new(content_path: String, output_path: String) -> Result<WebState, error::ServerError> {
+    pub fn new(content_path: String, output_path: String) -> eyre::Result<WebState, error::Error> {
         return Ok(WebState {
             content_path,
             output_path,
@@ -29,47 +32,33 @@ impl WebState {
 }
 
 #[bon::builder]
-pub async fn serve(server_data: cli::Serve) -> Result<(), error::ServerError> {
+pub async fn serve(server_data: cli::Serve) -> eyre::Result<(), error::Error> {
     let content_folder = server_data.content.clone();
     let output_folder = server_data.output.clone();
 
-    match content::build_content()
+    content::build_content()
         .content_folder_path(content_folder.clone().as_str())
         .output_folder_path(output_folder.clone().as_str())
         .input_path_string(content_folder.clone().as_str())
         .call()
-    {
-        Ok(_) => {}
-        Err(e) => return Err(error::ServerError::ContentBuildError(e.to_string())),
-    };
+        .wrap_err("failed to build content")?;
 
-    match content::build_index_files()
+    content::build_index_files()
         .output_folder_path(output_folder.clone())
         .call()
-    {
-        Ok(_) => {}
-        Err(e) => {
-            return Err(error::ServerError::IndexFilesBuildError(e.to_string()));
-        }
-    }
+        .wrap_err("failed to build index files for the folder pages")?;
 
-    match content::build_static_assets()
+    content::build_static_assets()
         .output_folder_path(server_data.output.clone())
         .call()
-    {
-        Ok(_) => {}
-        Err(e) => return Err(error::ServerError::StaticAssetsBuildError(e.to_string())),
-    };
+        .wrap_err("failed to build static assets")?;
 
     let web_state = Arc::new(RwLock::new(
-        match WebState::builder()
+        WebState::builder()
             .content_path(content_folder.clone())
             .output_path(output_folder.clone())
             .build()
-        {
-            Ok(safe_web_state) => safe_web_state,
-            Err(e) => return Err(error::ServerError::WebStateError(e.to_string())),
-        },
+            .wrap_err("failed to create web state")?,
     ));
 
     let live_reload_layer = tower_livereload::LiveReloadLayer::new();
@@ -86,7 +75,8 @@ pub async fn serve(server_data: cli::Serve) -> Result<(), error::ServerError> {
         .layer(live_reload_layer);
 
     let mut watcher =
-        hotwatch::Hotwatch::new_with_custom_delay(std::time::Duration::from_millis(100)).unwrap();
+        hotwatch::Hotwatch::new_with_custom_delay(std::time::Duration::from_millis(100))
+            .wrap_err("failed to create a hotwatch instance with custom delay")?;
     watcher
         .watch(
             content_folder.clone(),
@@ -101,7 +91,10 @@ pub async fn serve(server_data: cli::Serve) -> Result<(), error::ServerError> {
                     {
                         Ok(_) => {}
                         Err(e) => {
-                            eprintln!("Failed to build content , Error: {:#?}", e.to_string());
+                            tracing::error!(
+                                "failed to build content , Error: {:#?}",
+                                e.to_string()
+                            );
                             std::process::exit(1);
                         }
                     };
@@ -111,22 +104,18 @@ pub async fn serve(server_data: cli::Serve) -> Result<(), error::ServerError> {
                 _ => {}
             },
         )
-        .unwrap();
+        .wrap_err("failed to watch for changes using hotwatch")?;
 
     let listener =
-        match tokio::net::TcpListener::bind(ADDRESS.to_string() + ":" + PORT.to_string().as_str())
+        tokio::net::TcpListener::bind(ADDRESS.to_string() + ":" + PORT.to_string().as_str())
             .await
-        {
-            Ok(safe_listener) => safe_listener,
-            Err(e) => return Err(error::ServerError::TCPListenerBindError(e.to_string())),
-        };
+            .wrap_err("failed to bind TCP Listener to address")?;
 
-    println!("running on {}:{}", ADDRESS, PORT);
+    tracing::info!("running on {}:{}", ADDRESS, PORT);
 
-    match axum::serve(listener, router).await {
-        Ok(_) => {}
-        Err(e) => return Err(error::ServerError::ServerListenerStartError(e.to_string())),
-    };
+    axum::serve(listener, router)
+        .await
+        .wrap_err("Failed to start the serrver listener")?;
 
     return Ok(());
 }
