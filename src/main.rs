@@ -11,7 +11,7 @@ async fn main() -> eyre::Result<(), error::Error> {
     color_eyre::install()?;
     tracing_subscriber::fmt()
         .with_ansi(true)
-        .with_max_level(tracing::Level::DEBUG)
+        .with_max_level(tracing::Level::INFO)
         .init();
 
     let args = cli::CLIArgs::parse();

@@ -1,7 +1,7 @@
-use crate::{error, templates};
-use askama::Template;
+use crate::{error, web};
 use bon;
-use color_eyre::eyre::{self, WrapErr};
+use color_eyre::eyre::{self};
+use leptos::{self, prelude::RenderHtml};
 use rust_embed;
 use std::{fs, path};
 use tracing;
@@ -10,8 +10,8 @@ use walkdir;
 #[cfg(test)]
 mod tests;
 
-#[derive(Debug, bon::Builder)]
-pub struct FolderTemplateChildLink {
+#[derive(Debug, Clone, bon::Builder)]
+pub struct FolderPageChildLink {
     pub name: String,
     pub href: String,
 }
@@ -62,24 +62,19 @@ pub fn generate_html_for_file_page(markdown_content: &str) -> eyre::Result<Strin
     let parser = pulldown_cmark::Parser::new_ext(markdown_content, options);
     pulldown_cmark::html::push_html(&mut output_html, parser);
 
-    let html = templates::FileTemplate::builder()
-        .content(output_html)
-        .build()
-        .render()
-        .wrap_err("failed to render file page HTML template")?;
+    let html = web::FilePage(web::FilePageProps {
+        content: output_html,
+    })
+    .to_html();
 
     return Ok(html);
 }
 
 #[bon::builder]
 pub fn generate_html_for_folder_page(
-    subfiles: Vec<FolderTemplateChildLink>,
+    subfiles: Vec<FolderPageChildLink>,
 ) -> eyre::Result<String, error::Error> {
-    let html = templates::FolderTemplate::builder()
-        .subfiles(subfiles)
-        .build()
-        .render()
-        .wrap_err("failed to render folder page HTML template")?;
+    let html = web::FolderPage(web::FolderPageProps { subfiles }).to_html();
     return Ok(html);
 }
 
@@ -120,7 +115,7 @@ pub fn build_curr_folder_index_file(
         )))?;
     }
     let ignores = Vec::from([".git", ".obsidian", "index"]);
-    let mut curr_folder_subfiles: Vec<FolderTemplateChildLink> = Vec::new();
+    let mut curr_folder_subfiles: Vec<FolderPageChildLink> = Vec::new();
 
     let folder_entries = fs::read_dir(input_folder_path)?;
 
@@ -150,7 +145,7 @@ pub fn build_curr_folder_index_file(
 
         if entry_path.is_dir() || entry_path.is_file() {
             curr_folder_subfiles.push(
-                FolderTemplateChildLink::builder()
+                FolderPageChildLink::builder()
                     .name(entry_name.replace(".html", ""))
                     .href(href)
                     .build(),

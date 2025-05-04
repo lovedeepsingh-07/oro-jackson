@@ -1,4 +1,3 @@
-use askama;
 use axum::{self, response::IntoResponse};
 use color_eyre::{self, eyre};
 use hotwatch;
@@ -9,9 +8,6 @@ use tracing;
 pub enum Error {
     #[error(transparent)]
     Io(#[from] std::io::Error),
-
-    #[error(transparent)]
-    HTMLTemplateRenderError(#[from] askama::Error),
 
     #[error("not found, {0}")]
     NotFound(String),
@@ -33,11 +29,6 @@ pub enum Error {
 impl Error {
     fn response(&self) -> axum::response::Response {
         match self {
-            Self::HTMLTemplateRenderError(_) => (
-                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-                "failed to render HTML tempalte".to_string(),
-            )
-                .into_response(),
             Self::NotFound(e) => (
                 axum::http::StatusCode::NOT_FOUND,
                 format!("not found: {:#?}", e.to_string()),

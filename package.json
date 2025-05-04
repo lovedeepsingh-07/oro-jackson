@@ -3,24 +3,22 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tailwindcss -i ./tailwind.css -o ./_static/style.css --minify --watch",
-    "build": "tailwindcss -i ./tailwind.css -o ./_static/style.css --minify",
     "format": "prettier --write .",
     "lint": "prettier --check . && eslint ."
   },
   "dependencies": {
     "@eslint/compat": "^1.2.5",
     "@eslint/js": "^9.24.0",
+    "@tailwindcss/cli": "^4.1.4",
     "autoprefixer": "^10.4.20",
     "eslint": "^9.24.0",
     "eslint-config-prettier": "^10.0.1",
-    "franken-ui": "2.0.0",
     "globals": "^16.0.0",
     "lucide-svelte": "^0.483.0",
     "mathjax": "^3.2.2",
     "postcss": "^8.5.3",
     "prettier": "^3.4.2",
     "prettier-plugin-tailwindcss": "^0.6.11",
-    "tailwindcss": "^3.4.9"
+    "tailwindcss": "^4.1.4"
   }
 }
