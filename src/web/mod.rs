@@ -9,9 +9,10 @@ pub fn BaseHTML(children: Children) -> impl IntoView {
             <head>
                 <title>oro-jackson</title>
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
+                <link rel="stylesheet" href="/_static/theme.css" />
                 <link rel="stylesheet" href="/_static/style.css" />
             </head>
-            <body class="bg-blue-500">
+            <body class="bg-(--secondary-light)">
             {children()}
             </body>
         </html>

@@ -22,6 +22,7 @@
         devShell = pkgs.mkShell {
           packages = [
 		  	rust-pkgs.just
+		  	rust-pkgs.cargo-watch
             bun-pkgs.bun
             pkgs.rust-bin.stable."1.84.0".default
           ];

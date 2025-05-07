@@ -1,4 +1,4 @@
-use crate::{error, web};
+use crate::{config, error, web};
 use bon;
 use color_eyre::eyre::{self};
 use leptos::{self, prelude::RenderHtml};
@@ -79,8 +79,12 @@ pub fn generate_html_for_folder_page(
 }
 
 #[bon::builder]
-pub fn build_static_assets(output_folder_path: String) -> eyre::Result<(), error::Error> {
+pub fn build_static_assets(
+    output_folder_path: &str,
+    app_config: config::Config,
+) -> eyre::Result<(), error::Error> {
     let static_subdir_path = format!("{}/_static", output_folder_path);
+
     for item in StaticAssets::iter() {
         let item_path = format!("{}/{}", static_subdir_path, item);
 
@@ -93,6 +97,41 @@ pub fn build_static_assets(output_folder_path: String) -> eyre::Result<(), error
 
         fs::write(&item_path, item_contents)?;
     }
+
+    let theme_css_path = format!("{}/theme.css", static_subdir_path);
+
+    let theme_css_contents: String = format!(
+        r#":root {{
+    --background-light: {};
+    --foreground-light: {};
+    --primary-light: {};
+    --secondary-light: {};
+    --accent-light: {};
+    --neutral-light: {};
+    --background-dark: {};
+    --foreground-dark: {};
+    --primary-dark: {};
+    --secondary-dark: {};
+    --accent-dark: {};
+    --neutral-dark: {};
+    --radius: {};
+}}"#,
+        app_config.theme.light.background,
+        app_config.theme.light.foreground,
+        app_config.theme.light.primary,
+        app_config.theme.light.secondary,
+        app_config.theme.light.accent,
+        app_config.theme.light.neutral,
+        app_config.theme.dark.background,
+        app_config.theme.dark.foreground,
+        app_config.theme.dark.primary,
+        app_config.theme.dark.secondary,
+        app_config.theme.dark.accent,
+        app_config.theme.dark.neutral,
+        app_config.theme.radius
+    );
+
+    fs::write(&theme_css_path, theme_css_contents)?;
 
     return Ok(());
 }

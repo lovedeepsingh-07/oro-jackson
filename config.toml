@@ -1,5 +1,20 @@
+show_folder_page_children = true
+
 [theme]
-primary = ""
-secondary = ""
-accent = ""
-neutral = ""
+radius = "2rem"
+
+[theme.light]
+background = "#ebfdfe"
+foreground = "#0d4c62"
+primary = "#fca4d4"
+secondary = "#ffb667"
+accent = "#71d1fe"
+neutral = "#0090b5"
+
+[theme.dark]
+background = "#ebfdfe"
+foreground = "#0d4c62"
+primary = "#fca4d4"
+secondary = "#ffb667"
+accent = "#71d1fe"
+neutral = "#0090b5"

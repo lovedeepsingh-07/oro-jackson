@@ -1,9 +1,9 @@
-use crate::{cli, content, error, handlers};
+use crate::{cli, config, content, error, handlers};
 use axum;
 use bon;
 use color_eyre::eyre::{self, WrapErr};
 use hotwatch;
-use std::sync::Arc;
+use std::{fs, sync::Arc};
 use tokio::{self, sync::RwLock};
 use tower_livereload;
 use tracing;
@@ -36,6 +36,10 @@ pub async fn serve(server_data: cli::Serve) -> eyre::Result<(), error::Error> {
     let content_folder = server_data.content.clone();
     let output_folder = server_data.output.clone();
 
+    let config_file_path_canon = fs::canonicalize(server_data.config.clone())?;
+    let config_file_contents = fs::read_to_string(&config_file_path_canon)?;
+    let app_config: config::Config = toml::from_str(&config_file_contents)?;
+
     content::build_content()
         .content_folder_path(content_folder.clone().as_str())
         .output_folder_path(output_folder.clone().as_str())
@@ -49,7 +53,8 @@ pub async fn serve(server_data: cli::Serve) -> eyre::Result<(), error::Error> {
         .wrap_err("failed to build index files for the folder pages")?;
 
     content::build_static_assets()
-        .output_folder_path(server_data.output.clone())
+        .output_folder_path(server_data.output.clone().as_str())
+        .app_config(app_config)
         .call()
         .wrap_err("failed to build static assets")?;
 

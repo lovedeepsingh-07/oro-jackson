@@ -3,7 +3,8 @@ use color_eyre::{
     self,
     eyre::{self, WrapErr},
 };
-use oro_jackson::{cli, content, error, server};
+    use oro_jackson::{cli, config, content, error, server};
+use std::fs;
 use tokio;
 
 #[tokio::main]
@@ -25,6 +26,10 @@ async fn main() -> eyre::Result<(), error::Error> {
                 .wrap_err("failed to start the server")?;
         }
         cli::SubCommands::Build(data) => {
+            let config_file_path_canon = fs::canonicalize(data.config.clone())?;
+            let config_file_contents = fs::read_to_string(&config_file_path_canon)?;
+            let app_config: config::Config = toml::from_str(&config_file_contents)?;
+
             content::build_content()
                 .content_folder_path(data.content.clone().as_str())
                 .output_folder_path(data.output.clone().as_str())
@@ -38,7 +43,8 @@ async fn main() -> eyre::Result<(), error::Error> {
                 .wrap_err("failed to build index files for folders")?;
 
             content::build_static_assets()
-                .output_folder_path(data.output.clone())
+                .output_folder_path(data.output.clone().as_str())
+                .app_config(app_config)
                 .call()
                 .wrap_err("failed to build static assets")?;
         }

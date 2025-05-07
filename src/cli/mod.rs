@@ -20,6 +20,8 @@ pub enum SubCommands {
 #[derive(Args, Debug, Clone)]
 #[command(about = "Serve the content")]
 pub struct Serve {
+    #[arg(long, help = "path location of your config.toml file")]
+    pub config: String,
     #[arg(long, help = "path location of your content folder")]
     pub content: String,
     #[arg(long, help = "path location of output folder")]
@@ -29,6 +31,8 @@ pub struct Serve {
 #[derive(Args, Debug, Clone)]
 #[command(about = "Build the content")]
 pub struct Build {
+    #[arg(long, help = "path location of your config.toml file")]
+    pub config: String,
     #[arg(long, help = "path location of your content folder")]
     pub content: String,
     #[arg(long, help = "path location of output folder")]

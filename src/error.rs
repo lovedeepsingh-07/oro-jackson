@@ -2,6 +2,7 @@ use axum::{self, response::IntoResponse};
 use color_eyre::{self, eyre};
 use hotwatch;
 use thiserror;
+use toml;
 use tracing;
 
 #[derive(Debug, thiserror::Error)]
@@ -14,6 +15,12 @@ pub enum Error {
 
     #[error("invalid input, {0}")]
     InvalidInput(String),
+
+    #[error(transparent)]
+    TomlSerError(#[from] toml::ser::Error),
+
+    #[error(transparent)]
+    TomlDeError(#[from] toml::de::Error),
 
     #[error(transparent)]
     Utf8DecodeError(#[from] std::string::FromUtf8Error),
