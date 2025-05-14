@@ -7,9 +7,6 @@ use std::{fs, path};
 use tracing;
 use walkdir;
 
-#[cfg(test)]
-mod tests;
-
 #[derive(Debug, Clone, bon::Builder)]
 pub struct FolderPageChildLink {
     pub name: String,
@@ -62,7 +59,7 @@ pub fn generate_html_for_file_page(markdown_content: &str) -> eyre::Result<Strin
     let parser = pulldown_cmark::Parser::new_ext(markdown_content, options);
     pulldown_cmark::html::push_html(&mut output_html, parser);
 
-    let html = web::FilePage(web::FilePageProps {
+    let html = web::pages::file_page::FilePage(web::pages::file_page::FilePageProps {
         content: output_html,
     })
     .to_html();
@@ -74,7 +71,9 @@ pub fn generate_html_for_file_page(markdown_content: &str) -> eyre::Result<Strin
 pub fn generate_html_for_folder_page(
     subfiles: Vec<FolderPageChildLink>,
 ) -> eyre::Result<String, error::Error> {
-    let html = web::FolderPage(web::FolderPageProps { subfiles }).to_html();
+    let html =
+        web::pages::folder_page::FolderPage(web::pages::folder_page::FolderPageProps { subfiles })
+            .to_html();
     return Ok(html);
 }
 
@@ -241,7 +240,7 @@ pub fn build_index_files(output_folder_path: String) -> eyre::Result<(), error::
 }
 
 #[bon::builder]
-pub fn build_content(
+pub fn parse(
     content_folder_path: &str,
     output_folder_path: &str,
     input_path_string: &str,

@@ -1,4 +1,10 @@
-show_folder_page_children = true
+[plugins.transformers]
+markdown = { enable = true }
+
+[plugins.emitters]
+folder_page = { enable = true, show_folder_page_children = true }
+file_page = { enable = true }
+static_assets = { enable = true }
 
 [theme]
 radius = "2rem"
