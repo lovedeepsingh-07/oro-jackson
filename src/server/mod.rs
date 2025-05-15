@@ -1,4 +1,4 @@
-use crate::{cli, config, error, processors};
+use crate::{cli, config, error};
 use axum;
 use bon;
 use color_eyre::eyre::{self, WrapErr};
@@ -41,23 +41,23 @@ pub async fn serve(server_data: cli::Build) -> eyre::Result<(), error::Error> {
     let config_file_contents = fs::read_to_string(&config_file_path_canon)?;
     let app_config: config::Config = toml::from_str(&config_file_contents)?;
 
-    processors::parse::parse()
-        .content_folder_path(content_folder.clone().as_str())
-        .output_folder_path(output_folder.clone().as_str())
-        .input_path_string(content_folder.clone().as_str())
-        .call()
-        .wrap_err("failed to build content")?;
-
-    processors::parse::build_index_files()
-        .output_folder_path(output_folder.clone())
-        .call()
-        .wrap_err("failed to build index files for the folder pages")?;
-
-    processors::parse::build_static_assets()
-        .output_folder_path(server_data.output.clone().as_str())
-        .app_config(app_config)
-        .call()
-        .wrap_err("failed to build static assets")?;
+    // processors::parse::parse_content()
+    //     .content_folder_path(content_folder.clone().as_str())
+    //     .output_folder_path(output_folder.clone().as_str())
+    //     .input_path_string(content_folder.clone().as_str())
+    //     .call()
+    //     .wrap_err("failed to build content")?;
+    //
+    // processors::parse::build_index_files()
+    //     .output_folder_path(output_folder.clone())
+    //     .call()
+    //     .wrap_err("failed to build index files for the folder pages")?;
+    //
+    // processors::parse::build_static_assets()
+    //     .output_folder_path(server_data.output.clone().as_str())
+    //     .app_config(app_config)
+    //     .call()
+    //     .wrap_err("failed to build static assets")?;
 
     let web_state = Arc::new(RwLock::new(
         WebState::builder()
@@ -89,21 +89,21 @@ pub async fn serve(server_data: cli::Build) -> eyre::Result<(), error::Error> {
             move |event: hotwatch::Event| match event.kind {
                 hotwatch::EventKind::Modify(hotwatch::notify::event::ModifyKind::Data(_))
                 | hotwatch::EventKind::Create(_) => {
-                    match processors::parse::parse()
-                        .content_folder_path(content_folder.clone().as_str())
-                        .output_folder_path(output_folder.clone().as_str())
-                        .input_path_string(event.paths[0].to_string_lossy().to_string().as_str())
-                        .call()
-                    {
-                        Ok(_) => {}
-                        Err(e) => {
-                            tracing::error!(
-                                "failed to build content , Error: {:#?}",
-                                e.to_string()
-                            );
-                            std::process::exit(1);
-                        }
-                    };
+                    // match processors::parse::parse_content()
+                    //     .content_folder_path(content_folder.clone().as_str())
+                    //     .output_folder_path(output_folder.clone().as_str())
+                    //     .input_path_string(event.paths[0].to_string_lossy().to_string().as_str())
+                    //     .call()
+                    // {
+                    //     Ok(_) => {}
+                    //     Err(e) => {
+                    //         tracing::error!(
+                    //             "failed to build content , Error: {:#?}",
+                    //             e.to_string()
+                    //         );
+                    //         std::process::exit(1);
+                    //     }
+                    // };
                     reloader.reload();
                 }
                 hotwatch::EventKind::Remove(_) => {}

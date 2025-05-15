@@ -2,7 +2,7 @@ default:
 	just -l
 
 serve:
-	cargo watch -x "run serve --config ./config.toml --content ../bookshelf/content --output ./build" -i ./_static
+	cargo watch -x "run build --serve --config ./config.toml --content ../bookshelf/content --output ./build" -i ./_static
 	# cargo run serve --config ./config.toml --content ../bookshelf/content --output ./build
 
 build:
@@ -12,7 +12,7 @@ test:
     cargo test -- --nocapture
 
 tw-serve:
-	bunx @tailwindcss/cli -i ./src/tailwind.css -o ./_static/style.css --minify --watch
+	bunx @tailwindcss/cli -i ./tailwind.css -o ./_static/style.css --minify --watch
 
 tw-build:
-	bunx @tailwindcss/cli -i ./src/tailwind.css -o ./_static/style.css --minify
+	bunx @tailwindcss/cli -i ./tailwind.css -o ./_static/style.css --minify

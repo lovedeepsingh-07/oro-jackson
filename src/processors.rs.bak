@@ -1,4 +1,4 @@
-use crate::{config, error, web};
+use crate::{config, context, error, web};
 use bon;
 use color_eyre::eyre::{self};
 use leptos::{self, prelude::RenderHtml};
@@ -6,6 +6,11 @@ use rust_embed;
 use std::{fs, path};
 use tracing;
 use walkdir;
+
+#[bon::builder]
+pub fn parse(ctx: &mut context::Context) -> eyre::Result<(), error::Error> {
+    return Ok(());
+}
 
 #[derive(Debug, Clone, bon::Builder)]
 pub struct FolderPageChildLink {
@@ -107,13 +112,14 @@ pub fn build_static_assets(
     --secondary-light: {};
     --accent-light: {};
     --neutral-light: {};
+    --radius-light: {};
     --background-dark: {};
     --foreground-dark: {};
     --primary-dark: {};
     --secondary-dark: {};
     --accent-dark: {};
     --neutral-dark: {};
-    --radius: {};
+    --radius-dark: {};
 }}"#,
         app_config.theme.light.background,
         app_config.theme.light.foreground,
@@ -121,13 +127,14 @@ pub fn build_static_assets(
         app_config.theme.light.secondary,
         app_config.theme.light.accent,
         app_config.theme.light.neutral,
+        app_config.theme.light.radius,
         app_config.theme.dark.background,
         app_config.theme.dark.foreground,
         app_config.theme.dark.primary,
         app_config.theme.dark.secondary,
         app_config.theme.dark.accent,
         app_config.theme.dark.neutral,
-        app_config.theme.radius
+        app_config.theme.dark.radius,
     );
 
     fs::write(&theme_css_path, theme_css_contents)?;
@@ -240,7 +247,7 @@ pub fn build_index_files(output_folder_path: String) -> eyre::Result<(), error::
 }
 
 #[bon::builder]
-pub fn parse(
+pub fn parse_content(
     content_folder_path: &str,
     output_folder_path: &str,
     input_path_string: &str,

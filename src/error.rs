@@ -28,6 +28,9 @@ pub enum Error {
     #[error(transparent)]
     HotwatchError(#[from] hotwatch::Error),
 
+    #[error("failed to parse markdown, {0}")]
+    MarkdownError(String),
+
     #[error(transparent)]
     Other(#[from] eyre::Report),
 }

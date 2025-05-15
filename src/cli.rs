@@ -1,8 +1,5 @@
 use clap::{Args, Parser, Subcommand};
 
-#[cfg(test)]
-mod tests;
-
 #[derive(Parser, Debug, Clone)]
 #[command(about,long_about=None)]
 #[command(next_line_help = true)]

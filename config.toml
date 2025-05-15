@@ -2,12 +2,9 @@
 markdown = { enable = true }
 
 [plugins.emitters]
-folder_page = { enable = true, show_folder_page_children = true }
-file_page = { enable = true }
 static_assets = { enable = true }
-
-[theme]
-radius = "2rem"
+file_page = { enable = true }
+folder_page = { enable = true, show_folder_page_children = true }
 
 [theme.light]
 background = "#ebfdfe"
@@ -16,11 +13,13 @@ primary = "#fca4d4"
 secondary = "#ffb667"
 accent = "#71d1fe"
 neutral = "#0090b5"
+radius = "2rem"
 
 [theme.dark]
-background = "#ebfdfe"
-foreground = "#0d4c62"
-primary = "#fca4d4"
-secondary = "#ffb667"
-accent = "#71d1fe"
-neutral = "#0090b5"
+background = "#101828"
+foreground = "#f1f2f4"
+primary = "#ff9fa0"
+secondary = "#ffa1ad"
+accent = "#a1b1ff"
+neutral = "#1c2737"
+radius = "1rem"
