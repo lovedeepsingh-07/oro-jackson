@@ -1,5 +1,6 @@
-use crate::{context, error, oj_file};
+use crate::{context, error, oj_file, web};
 use color_eyre::eyre;
+use leptos::prelude::RenderHtml;
 use std::{fs, path};
 use tracing;
 
@@ -21,8 +22,13 @@ pub fn file_page_emitter(
                     "failed to get the parent folder for the given file".to_string(),
                 )
             })?;
+        let file_page_html =
+            web::pages::file_page::FilePage(web::pages::file_page::FilePageProps {
+                content: curr_file.content.clone(),
+            })
+            .to_html();
         let _ = fs::create_dir_all(parent_folder);
-        fs::write(&curr_file.path_slug, &curr_file.content)?;
+        fs::write(&curr_file.path_slug, &file_page_html)?;
         tracing::info!("Successfully built {:#?}", curr_file.path_slug);
     }
     return Ok(());
