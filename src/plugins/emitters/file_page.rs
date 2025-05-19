@@ -15,7 +15,20 @@ pub fn file_page_emitter(
 ) -> eyre::Result<(), error::Error> {
     let _ = ctx;
     for curr_file in content_files {
-        let parent_folder = path::Path::new(&curr_file.path_slug)
+        if path::Path::new(&curr_file.input_path)
+            .file_name()
+            .ok_or_else(|| {
+                error::Error::NotFound(
+                    "failed to get the parent folder for the given file".to_string(),
+                )
+            })?
+            .to_string_lossy()
+            .to_string()
+            == String::from("index.md")
+        {
+            continue;
+        };
+        let parent_folder = path::Path::new(&curr_file.output_path)
             .parent()
             .ok_or_else(|| {
                 error::Error::NotFound(
@@ -28,8 +41,8 @@ pub fn file_page_emitter(
             })
             .to_html();
         let _ = fs::create_dir_all(parent_folder);
-        fs::write(&curr_file.path_slug, &file_page_html)?;
-        tracing::info!("Successfully built {:#?}", curr_file.path_slug);
+        fs::write(&curr_file.output_path, &file_page_html)?;
+        tracing::info!("Successfully built {:#?}", curr_file.output_path);
     }
     return Ok(());
 }

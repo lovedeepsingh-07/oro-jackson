@@ -14,7 +14,7 @@ pub fn BaseHTML(children: Children) -> impl IntoView {
                 <link rel="stylesheet" href="/_static/theme.css" />
                 <link rel="stylesheet" href="/_static/style.css" />
             </head>
-            <body class="bg-(--secondary-light)">
+            <body class="bg-(--background-light) text-(--foreground-light)">
             {children()}
             </body>
         </html>

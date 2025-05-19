@@ -23,7 +23,7 @@ pub fn parse(ctx: &mut context::Context) -> eyre::Result<Vec<oj_file::OjFile>, e
             }
         };
         let entry_path = entry.path().display().to_string();
-        let entry_path_string = fs::canonicalize(&entry_path)?.to_string_lossy().to_string();
+        let abs_entry_path = fs::canonicalize(&entry_path)?.to_string_lossy().to_string();
 
         if utils::is_markdown_file().file_path(&entry_path).call() {
             let file_content = fs::read_to_string(&entry_path)?;
@@ -32,8 +32,9 @@ pub fn parse(ctx: &mut context::Context) -> eyre::Result<Vec<oj_file::OjFile>, e
                 .replace(&ctx.build_args.content, &ctx.build_args.output);
 
             res.push(oj_file::OjFile {
-                path: entry_path_string,
-                path_slug: entry_output_path_slug,
+                input_path: entry_path,
+                abs_input_path: abs_entry_path,
+                output_path: entry_output_path_slug,
                 content: file_content,
             })
         }

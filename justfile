@@ -11,8 +11,8 @@ build:
 test:
     cargo test -- --nocapture
 
-tw-serve:
+serve-tw:
 	bunx @tailwindcss/cli -i ./tailwind.css -o ./_static/style.css --minify --watch
 
-tw-build:
+build-tw:
 	bunx @tailwindcss/cli -i ./tailwind.css -o ./_static/style.css --minify
