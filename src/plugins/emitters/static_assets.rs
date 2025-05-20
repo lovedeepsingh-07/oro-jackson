@@ -24,7 +24,12 @@ pub fn static_assets_emitter(
     content_files: &Vec<oj_file::OjFile>,
 ) -> eyre::Result<(), error::Error> {
     let _ = content_files;
-    let _ = ctx;
+
+    // if this is a rebuild run, we don't need to write static assets again
+    if ctx.is_rebuild == true {
+        return Ok(());
+    }
+
     let static_subdir_path = format!("{}/_static", ctx.build_args.output);
 
     for item in StaticAssets::iter() {
@@ -38,7 +43,9 @@ pub fn static_assets_emitter(
         let _ = fs::create_dir_all(parent_folder);
 
         fs::write(&item_path, item_contents)?;
-        tracing::info!("Successfully built {:#?}", item_path);
+        if ctx.config.settings.logging == true {
+            tracing::info!("Successfully built {:#?}", item_path);
+        }
     }
 
     let theme_css_path = format!("{}/theme.css", static_subdir_path);
@@ -77,7 +84,9 @@ pub fn static_assets_emitter(
     );
 
     fs::write(&theme_css_path, theme_css_contents)?;
-    tracing::info!("Successfully built {:#?}", theme_css_path);
+    if ctx.config.settings.logging == true {
+        tracing::info!("Successfully built {:#?}", theme_css_path);
+    }
 
     return Ok(());
 }

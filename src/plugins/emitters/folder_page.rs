@@ -1,4 +1,4 @@
-use crate::{context, error, oj_file, web};
+use crate::{context, error, oj_file, utils, web};
 use color_eyre::eyre;
 use leptos::prelude::RenderHtml;
 use std::{fs, path};
@@ -15,11 +15,11 @@ pub struct FolderPageChildLink {
     pub href: String,
 }
 
-// TODO: this feels incredibly inefficient
-pub fn folder_page_emitter(
+#[bon::builder]
+pub fn prepare_folder_files(
     ctx: &context::Context,
     content_files: &Vec<oj_file::OjFile>,
-) -> eyre::Result<(), error::Error> {
+) -> eyre::Result<Vec<oj_file::OjFile>> {
     let mut folder_files: Vec<oj_file::OjFile> = Vec::new();
 
     for curr_file in content_files {
@@ -37,12 +37,7 @@ pub fn folder_page_emitter(
             }) {
                 continue;
             }
-            let mut curr_index_file: oj_file::OjFile = oj_file::OjFile {
-                input_path: String::new(),
-                abs_input_path: String::new(),
-                output_path: String::new(),
-                content: String::new(),
-            };
+            let mut curr_index_file: oj_file::OjFile = oj_file::OjFile::default();
             if let Some(folder_file) = content_files.iter().find(|cf| {
                 cf.input_path
                     == get_folder_index_file_path()
@@ -70,9 +65,21 @@ pub fn folder_page_emitter(
             folder_files.push(curr_index_file);
         }
     }
+    return Ok(folder_files);
+}
+
+// TODO: this feels incredibly inefficient
+pub fn folder_page_emitter(
+    ctx: &context::Context,
+    content_files: &Vec<oj_file::OjFile>,
+) -> eyre::Result<(), error::Error> {
+    let folder_files = prepare_folder_files()
+        .ctx(ctx)
+        .content_files(content_files)
+        .call()?;
 
     for index_file in folder_files {
-        let parent_folder = path::Path::new(&index_file.output_path)
+        let parent_folder = path::Path::new(&index_file.input_path)
             .parent()
             .ok_or_else(|| {
                 error::Error::NotFound(
@@ -82,20 +89,36 @@ pub fn folder_page_emitter(
 
         let folder_children = get_children()
             .index_file_parent_folder(&parent_folder.to_string_lossy().to_string())
-            .output_folder_string(&ctx.build_args.output)
+            .output_folder_string(&ctx.build_args.content)
             .call()?;
 
         let folder_page_html =
             web::pages::folder_page::FolderPage(web::pages::folder_page::FolderPageProps {
                 content: index_file.content.clone(),
                 subfiles: folder_children,
+                show_folder_page_children: ctx
+                    .config
+                    .plugins
+                    .emitters
+                    .folder_page
+                    .show_folder_page_children,
             })
             .to_html();
 
-        let _ = fs::create_dir_all(parent_folder);
+        let _ = fs::create_dir_all(
+            path::Path::new(&index_file.output_path)
+                .parent()
+                .ok_or_else(|| {
+                    error::Error::NotFound(
+                        "failed to get the parent folder for the given file".to_string(),
+                    )
+                })?,
+        );
         fs::write(&index_file.output_path, &folder_page_html)?;
 
-        tracing::info!("Successfully built {:#?}", index_file.output_path);
+        if ctx.config.settings.logging == true {
+            tracing::info!("Successfully built {:#?}", index_file.output_path);
+        }
     }
     return Ok(());
 }
@@ -145,25 +168,53 @@ pub fn get_children(
             }
         };
 
-        // skipp the _static directory from being identified as one of the children
-        if child_entry.file_name() == "_static" {
+        let child_entry_file_name = child_entry.file_name();
+        let child_entry_path = child_entry.path();
+
+        if child_entry_file_name == "_static"
+            || (child_entry_path.is_file()
+                && (child_entry_file_name == "index.md"
+                    || !utils::is_markdown_file()
+                        .file_path(&child_entry_file_name.to_string_lossy().to_string())
+                        .call()))
+            || utils::is_hidden_file()
+                .entry_file_name(child_entry_file_name.to_string_lossy().to_string())
+                .call()
+        {
             continue;
         }
 
-        let child_entry_path = child_entry
-            .path()
+        if child_entry_path.is_dir() {
+            match fs::read_dir(&child_entry_path) {
+                Ok(mut dir_iter) => {
+                    if dir_iter.next().is_none() {
+                        continue;
+                    }
+                }
+                Err(e) => {
+                    tracing::warn!(
+                        "unable to read directory {:?}, error: {:#?}",
+                        child_entry_path,
+                        e.to_string()
+                    );
+                    continue;
+                }
+            }
+        };
+
+        let child_entry_path_string = child_entry_path
             .to_string_lossy()
             .to_string()
-            .replace(".html", "");
+            .replace(".md", "");
 
         children.push(
             FolderPageChildLink::builder()
                 .name(
-                    child_entry_path
+                    child_entry_path_string
                         .replace(index_file_parent_folder, "")
                         .replace("/", ""),
                 )
-                .href(child_entry_path.replace(output_folder_string, ""))
+                .href(child_entry_path_string.replace(output_folder_string, ""))
                 .build(),
         );
     }

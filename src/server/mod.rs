@@ -1,9 +1,9 @@
-use crate::{cli, config, error};
+use crate::{context, error, processors};
 use axum;
 use bon;
 use color_eyre::eyre::{self, WrapErr};
 use hotwatch;
-use std::{fs, sync::Arc};
+use std::{path, sync::Arc};
 use tokio::{self, sync::RwLock};
 use tower_livereload;
 use tracing;
@@ -12,9 +12,7 @@ pub mod handlers;
 #[cfg(test)]
 mod tests;
 
-// constants
 pub const ADDRESS: std::net::Ipv4Addr = std::net::Ipv4Addr::new(0, 0, 0, 0);
-pub const PORT: u16 = 8080;
 
 #[derive(Debug, Clone)]
 pub struct WebState {
@@ -33,31 +31,9 @@ impl WebState {
 }
 
 #[bon::builder]
-pub async fn serve(server_data: cli::Build) -> eyre::Result<(), error::Error> {
-    let content_folder = server_data.content.clone();
-    let output_folder = server_data.output.clone();
-
-    let config_file_path_canon = fs::canonicalize(server_data.config.clone())?;
-    let config_file_contents = fs::read_to_string(&config_file_path_canon)?;
-    let app_config: config::Config = toml::from_str(&config_file_contents)?;
-
-    // processors::parse::parse_content()
-    //     .content_folder_path(content_folder.clone().as_str())
-    //     .output_folder_path(output_folder.clone().as_str())
-    //     .input_path_string(content_folder.clone().as_str())
-    //     .call()
-    //     .wrap_err("failed to build content")?;
-    //
-    // processors::parse::build_index_files()
-    //     .output_folder_path(output_folder.clone())
-    //     .call()
-    //     .wrap_err("failed to build index files for the folder pages")?;
-    //
-    // processors::parse::build_static_assets()
-    //     .output_folder_path(server_data.output.clone().as_str())
-    //     .app_config(app_config)
-    //     .call()
-    //     .wrap_err("failed to build static assets")?;
+pub async fn serve(ctx: &mut context::Context) -> eyre::Result<(), error::Error> {
+    let content_folder = ctx.build_args.content.clone();
+    let output_folder = ctx.build_args.output.clone();
 
     let web_state = Arc::new(RwLock::new(
         WebState::builder()
@@ -83,28 +59,47 @@ pub async fn serve(server_data: cli::Build) -> eyre::Result<(), error::Error> {
     let mut watcher =
         hotwatch::Hotwatch::new_with_custom_delay(std::time::Duration::from_millis(100))
             .wrap_err("failed to create a hotwatch instance with custom delay")?;
+    let mut watcher_ctx = ctx.clone();
     watcher
         .watch(
             content_folder.clone(),
             move |event: hotwatch::Event| match event.kind {
                 hotwatch::EventKind::Modify(hotwatch::notify::event::ModifyKind::Data(_))
                 | hotwatch::EventKind::Create(_) => {
-                    // match processors::parse::parse_content()
-                    //     .content_folder_path(content_folder.clone().as_str())
-                    //     .output_folder_path(output_folder.clone().as_str())
-                    //     .input_path_string(event.paths[0].to_string_lossy().to_string().as_str())
-                    //     .call()
-                    // {
-                    //     Ok(_) => {}
-                    //     Err(e) => {
-                    //         tracing::error!(
-                    //             "failed to build content , Error: {:#?}",
-                    //             e.to_string()
-                    //         );
-                    //         std::process::exit(1);
-                    //     }
-                    // };
-                    reloader.reload();
+                    watcher_ctx.is_rebuild = true;
+                    watcher_ctx.build_path = event.paths[0].to_string_lossy().to_string();
+                    if let Some(rebuild_file_name) =
+                        path::Path::new(&watcher_ctx.build_path).extension()
+                    {
+                        if rebuild_file_name.to_string_lossy().to_string() == "md" {
+                            let parsed_files =
+                                match processors::parse().ctx(&mut watcher_ctx).call() {
+                                    Ok(safe_processed_files) => safe_processed_files,
+                                    Err(e) => {
+                                        tracing::error!(
+                                            "failed to parse content files, Error: {:#?}",
+                                            e.to_string()
+                                        );
+                                        std::process::exit(1);
+                                    }
+                                };
+                            match processors::emit()
+                                .ctx(&mut watcher_ctx)
+                                .parsed_files(&parsed_files)
+                                .call()
+                            {
+                                Ok(_) => {}
+                                Err(e) => {
+                                    tracing::error!(
+                                        "failed to emit processed content files, Error: {:#?}",
+                                        e.to_string()
+                                    );
+                                    std::process::exit(1);
+                                }
+                            };
+                            reloader.reload();
+                        }
+                    }
                 }
                 hotwatch::EventKind::Remove(_) => {}
                 _ => {}
@@ -112,12 +107,14 @@ pub async fn serve(server_data: cli::Build) -> eyre::Result<(), error::Error> {
         )
         .wrap_err("failed to watch for changes using hotwatch")?;
 
-    let listener =
-        tokio::net::TcpListener::bind(ADDRESS.to_string() + ":" + PORT.to_string().as_str())
-            .await
-            .wrap_err("failed to bind TCP Listener to address")?;
+    let server_port = ctx.config.server.port.clone();
+    let listener = tokio::net::TcpListener::bind(ADDRESS.to_string() + ":" + &server_port)
+        .await
+        .wrap_err("failed to bind TCP Listener to address")?;
 
-    tracing::info!("running on {}:{}", ADDRESS, PORT);
+    if ctx.config.settings.logging == true {
+        tracing::info!("running on {}:{}", ADDRESS, server_port);
+    }
 
     axum::serve(listener, router)
         .await

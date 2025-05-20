@@ -1,3 +1,9 @@
+[settings]
+logging = true
+
+[server]
+port = "3000"
+
 [plugins.transformers]
 markdown = { enable = true }
 

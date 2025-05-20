@@ -6,6 +6,8 @@ use color_eyre::eyre;
 pub struct Context {
     pub config: config::Config,
     pub build_args: cli::Build,
+    pub is_rebuild: bool,
+    pub build_path: String,
     pub transformer_plugins: Vec<plugins::Transformer>,
     pub emitter_plugins: Vec<plugins::Emitter>,
 }
@@ -19,6 +21,8 @@ impl Context {
     ) -> eyre::Result<Self, error::Error> {
         let mut ctx = Context {
             config: app_config,
+            build_path: build_args.clone().content,
+            is_rebuild: false,
             build_args,
             transformer_plugins: Vec::new(),
             emitter_plugins: Vec::new(),

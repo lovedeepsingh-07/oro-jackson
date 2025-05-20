@@ -3,8 +3,20 @@ use serde;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Config {
+    pub settings: Settings,
+    pub server: Server,
     pub plugins: Plugins,
     pub theme: Theme,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct Settings {
+    pub logging: bool,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct Server {
+    pub port: String,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]

@@ -42,7 +42,10 @@ pub fn file_page_emitter(
             .to_html();
         let _ = fs::create_dir_all(parent_folder);
         fs::write(&curr_file.output_path, &file_page_html)?;
-        tracing::info!("Successfully built {:#?}", curr_file.output_path);
+
+        if ctx.config.settings.logging == true {
+            tracing::info!("Successfully built {:#?}", curr_file.output_path);
+        }
     }
     return Ok(());
 }

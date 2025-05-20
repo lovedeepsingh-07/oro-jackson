@@ -1817,6 +1817,7 @@ dependencies = [
  "leptos",
  "markdown",
  "mime_guess",
+ "pathdiff",
  "pulldown-cmark",
  "rust-embed",
  "serde",

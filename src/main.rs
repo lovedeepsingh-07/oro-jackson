@@ -3,7 +3,7 @@ use color_eyre::{
     self,
     eyre::{self},
 };
-use oro_jackson::{cli, config, context, error, processors};
+use oro_jackson::{cli, config, context, error, processors, server};
 use std::{fs, path};
 use tokio;
 
@@ -38,6 +38,10 @@ async fn main() -> eyre::Result<(), error::Error> {
                 .ctx(&mut ctx)
                 .parsed_files(&parsed_files)
                 .call()?;
+
+            if cli_data.serve == true {
+                server::serve().ctx(&mut ctx).call().await?;
+            }
         }
     };
     return Ok(());
