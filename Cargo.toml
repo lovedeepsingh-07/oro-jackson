@@ -8,7 +8,7 @@ name = "oro_jackson"
 path = "src/lib.rs"
 
 [[bin]]
-name = "oro_jackson-bin"
+name = "oro-jackson"
 path = "src/main.rs"
 
 [dependencies]

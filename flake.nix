@@ -18,24 +18,27 @@
         pkgs = import nixpkgs { inherit system overlays; };
         bun-pkgs = inputs.bun_1_2_0-pkgs.legacyPackages.${system};
         rust-pkgs = inputs.rust_1_84_0-pkgs.legacyPackages.${system};
-        rust = pkgs.rust-bin.stable."1.84.0".default;
-        craneLib = (crane.mkLib pkgs).overrideToolchain rust;
-        build-deps = [ ];
-        package = craneLib.buildPackage {
-          src = ./.;
-          strictDeps = true;
-          buildInputs = build-deps;
+
+        ctx = {
+          package = {
+            name = "oro-jackson";
+            version = "0.0.1";
+            src = ./.;
+          };
+          rust = pkgs.rust-bin.stable."1.84.0".default;
+          build-deps = [ ];
         };
+
+        package = import ./nix/package.nix { inherit pkgs ctx crane; };
+        devShell =
+          import ./nix/shell.nix { inherit pkgs rust-pkgs bun-pkgs ctx; };
       in {
         formatter = pkgs.nixfmt-classic;
-        devShell = pkgs.mkShell {
-          packages = [ rust rust-pkgs.just rust-pkgs.cargo-watch bun-pkgs.bun ]
-            ++ build-deps;
-        };
+        devShells.default = devShell;
         packages.default = package;
         apps.default = {
           type = "app";
-          program = "${package}/bin/raesan_registry-bin";
+          program = "${package}/bin/${ctx.package.name}";
         };
       });
 }

@@ -2,7 +2,7 @@
 logging = true
 
 [server]
-port = "3000"
+port = "8080"
 
 [plugins.transformers]
 markdown = { enable = true }
