@@ -1,0 +1,3 @@
+- (bug): say you are on a page with light mode, you got to some other page and switch to dark mode on that page, when you come back to the previous page using browser controls, it reverts back to light mode or whatver mode you were on when you were on that page, it takes a refresh to get it to normal
+- (feat): the syntax highlighting for markdown code blocks doesn't work
+- (feat): mermaid digrams doin't work

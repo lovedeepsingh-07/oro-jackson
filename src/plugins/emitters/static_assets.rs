@@ -50,38 +50,7 @@ pub fn static_assets_emitter(
 
     let theme_css_path = format!("{}/theme.css", static_subdir_path);
 
-    let theme_css_contents: String = format!(
-        r#":root {{
-        --background-light: {};
-        --foreground-light: {};
-        --primary-light: {};
-        --secondary-light: {};
-        --accent-light: {};
-        --neutral-light: {};
-        --radius-light: {};
-        --background-dark: {};
-        --foreground-dark: {};
-        --primary-dark: {};
-        --secondary-dark: {};
-        --accent-dark: {};
-        --neutral-dark: {};
-        --radius-dark: {};
-    }}"#,
-        ctx.config.theme.light.background,
-        ctx.config.theme.light.foreground,
-        ctx.config.theme.light.primary,
-        ctx.config.theme.light.secondary,
-        ctx.config.theme.light.accent,
-        ctx.config.theme.light.neutral,
-        ctx.config.theme.light.radius,
-        ctx.config.theme.dark.background,
-        ctx.config.theme.dark.foreground,
-        ctx.config.theme.dark.primary,
-        ctx.config.theme.dark.secondary,
-        ctx.config.theme.dark.accent,
-        ctx.config.theme.dark.neutral,
-        ctx.config.theme.dark.radius,
-    );
+    let theme_css_contents: String = ctx.config.theme.to_css();
 
     fs::write(&theme_css_path, theme_css_contents)?;
     if ctx.config.settings.logging == true {
