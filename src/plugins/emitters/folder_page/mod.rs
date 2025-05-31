@@ -3,6 +3,9 @@ use color_eyre::eyre;
 use leptos::prelude::RenderHtml;
 use std::{fs, path};
 
+#[cfg(test)]
+mod tests;
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct FolderPageEmitterOptions {
     pub enable: bool,
@@ -46,6 +49,7 @@ pub fn prepare_folder_files(
             }) {
                 curr_index_file = folder_file.clone();
             } else {
+                // the frontmatter stays a null value
                 curr_index_file.input_path = path::Path::new(&curr_parent_path)
                     .join("index.md")
                     .to_string_lossy()
@@ -92,8 +96,10 @@ pub fn folder_page_emitter(
             .output_folder_string(&ctx.build_args.content)
             .call()?;
 
+        let folder_page_frontmatter = web::pages::PageFrontmatter::new(ctx, &index_file);
         let folder_page_html =
             web::pages::folder_page::FolderPage(web::pages::folder_page::FolderPageProps {
+                frontmatter: folder_page_frontmatter,
                 content: index_file.content.clone(),
                 subfiles: folder_children,
                 show_folder_page_children: ctx
@@ -186,8 +192,14 @@ pub fn get_children(
 
         if child_entry_path.is_dir() {
             match fs::read_dir(&child_entry_path) {
-                Ok(mut dir_iter) => {
-                    if dir_iter.next().is_none() {
+                Ok(dir_iter) => {
+                    // Collect all entries, filtering out errors
+                    let entries: Vec<_> = dir_iter.filter_map(Result::ok).collect();
+
+                    // Skip if the directory is empty or only contains a `.keep` file
+                    if entries.is_empty()
+                        || (entries.len() == 1 && entries[0].file_name() == ".keep")
+                    {
                         continue;
                     }
                 }

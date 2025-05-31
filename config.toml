@@ -1,3 +1,5 @@
+title = "oro-jackson"
+
 [settings]
 logging = true
 
@@ -6,6 +8,8 @@ port = "8080"
 
 [plugins.transformers]
 markdown = { enable = true }
+sanitize = { enable = true }
+frontmatter = { enable = true }
 
 [plugins.emitters]
 static_assets = { enable = true }

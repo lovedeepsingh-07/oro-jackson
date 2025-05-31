@@ -1,23 +1,82 @@
+use crate::{context, oj_file};
 use leptos::prelude::*;
+use std::path;
 
 pub mod file_page;
-    pub mod folder_page;
+pub mod folder_page;
+
+pub struct PageFrontmatter {
+    title: String,
+}
+
+pub fn get_title_from_file(ctx: &context::Context, input_path: &str) -> String {
+    let curr_file_path = path::Path::new(input_path);
+    if let Some(curr_file_name) = curr_file_path.file_stem() {
+        if curr_file_name == "index" {
+            if let Some(parent_path) = curr_file_path.parent() {
+                if parent_path.to_string_lossy().to_string() == ctx.build_args.content {
+                    return ctx.config.title.clone();
+                } else {
+                    if let Some(parent_name) = parent_path.file_name() {
+                        return format!("Folder: {}", parent_name.to_string_lossy().to_string());
+                    }
+                }
+            }
+        }
+        return curr_file_name.to_string_lossy().to_string();
+    }
+    return "null".to_string();
+}
+
+impl PageFrontmatter {
+    pub fn new(ctx: &context::Context, curr_file: &oj_file::OjFile) -> Self {
+        let mut page_title = String::from("null");
+        match &curr_file.frontmatter {
+            oj_file::OjFrontmatter::Yaml(frontmatter) => {
+                if frontmatter.is_null() {
+                    page_title = get_title_from_file(ctx, &curr_file.input_path);
+                } else if let Some(title) = frontmatter.get("title") {
+                    if let Ok(ok_title) = serde_yaml::from_value::<String>(title.clone()) {
+                        page_title = ok_title;
+                    } else {
+                        page_title = get_title_from_file(ctx, &curr_file.input_path);
+                    }
+                } else {
+                    page_title = get_title_from_file(ctx, &curr_file.input_path);
+                }
+            }
+            oj_file::OjFrontmatter::Toml(frontmatter) => {
+                if let Some(title) = frontmatter.get("title") {
+                    page_title = title.to_string();
+                }
+            }
+        }
+        return PageFrontmatter { title: page_title };
+    }
+}
 
 #[component]
-pub fn BaseHTML(children: Children) -> impl IntoView {
+pub fn BaseHTML(children: Children, frontmatter: PageFrontmatter) -> impl IntoView {
     view! {
         <!doctype html>
         <html lang="en" data-theme="oj-dark">
             <head>
-                <title>oro-jackson</title>
+                <title>{frontmatter.title.clone()}</title>
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
                 <link rel="stylesheet" href="/_static/theme.css" />
                 <link rel="stylesheet" href="/_static/style.css" />
-                <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" integrity="sha384-5TcZemv2l/9On385z///+d7MSYlvIEw9FuZTIdZ14vJLqWphw7e7ZPuOiCHJcFCP" crossorigin="anonymous"/>
 
-                <script src="/_static/scripts/katex.render.js"></script>
+                <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" integrity="sha384-5TcZemv2l/9On385z///+d7MSYlvIEw9FuZTIdZ14vJLqWphw7e7ZPuOiCHJcFCP" crossorigin="anonymous"/>
                 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js" integrity="sha384-cMkvdD8LoxVzGF/RPUKAcvmm49FQ0oxwDF3BGKtDXcEc+T1b2N+teh/OJfpU0jr6" crossorigin="anonymous"></script>
+                <script src="/_static/scripts/katex.render.js"></script> // custom katex render script
+
+                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/default.min.css" />
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+                <link rel="stylesheet" href="/_static/highlightjs.theme.css" />
+                <script src="/_static/scripts/highlightjs.render.js"></script>
+
+                <script type="module" src="/_static/scripts/mermaid.render.js"></script>
             </head>
             <body class="overflow-x-auto">
                 <div class="fixed top-0 right-0 left-0 z-[80] flex items-center justify-end p-4">
@@ -62,6 +121,11 @@ pub fn BaseHTML(children: Children) -> impl IntoView {
                             </g></svg
                         >
                     </label>
+                </div>
+                <div class="mt-[64px] mb-[24px] px-4">
+                    <div class="mx-auto max-w-5xl">
+                        <p class="text-4xl font-bold text-wrap">{frontmatter.title.clone()}</p>
+                    </div>
                 </div>
                 {children()}
                 <script src="/_static/scripts/theme.control.js"></script>

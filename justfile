@@ -3,7 +3,6 @@ default:
 
 serve:
 	cargo watch -x "run build --serve --config ./config.toml --content ../bookshelf/content --output ./build" -i ./_static
-	# cargo run serve --config ./config.toml --content ../bookshelf/content --output ./build
 
 build:
     cargo run build --config ./config.toml --content ../bookshelf/content --output ./build

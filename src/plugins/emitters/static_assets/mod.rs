@@ -2,6 +2,9 @@ use crate::{context, error, oj_file};
 use color_eyre::eyre;
 use std::{fs, path};
 
+#[cfg(test)]
+mod tests;
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct StaticAssetsEmitterOptions {
     pub enable: bool,

@@ -3,17 +3,17 @@ use bon;
 use color_eyre::eyre;
 
 #[bon::builder]
-pub fn parse(ctx: &mut context::Context) -> eyre::Result<Vec<oj_file::OjFile>, error::Error> {
+pub fn parse(ctx: &context::Context) -> eyre::Result<Vec<oj_file::OjFile>, error::Error> {
     let mut res = utils::prepare_content().ctx(ctx).call()?;
     for tfmr in &ctx.transformer_plugins {
-        res = tfmr(&mut res)?.to_vec();
+        res = tfmr(ctx, &mut res)?.to_vec();
     }
     return Ok(res);
 }
 
 #[bon::builder]
 pub fn emit(
-    ctx: &mut context::Context,
+    ctx: &context::Context,
     parsed_files: &Vec<oj_file::OjFile>,
 ) -> eyre::Result<(), error::Error> {
     for emtr in &ctx.emitter_plugins {

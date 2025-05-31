@@ -1,12 +1,14 @@
 use crate::{context, error, oj_file};
 use color_eyre::eyre;
 use pathdiff;
+use serde_yaml;
 use std::{fs, path};
 
+#[cfg(test)]
+mod tests;
+
 #[bon::builder]
-pub fn prepare_content(
-    ctx: &mut context::Context,
-) -> eyre::Result<Vec<oj_file::OjFile>, error::Error> {
+pub fn prepare_content(ctx: &context::Context) -> eyre::Result<Vec<oj_file::OjFile>, error::Error> {
     if ctx.is_rebuild == true {
         let curr_build_path_string = ctx.build_path.clone();
         let curr_build_path = path::Path::new(&curr_build_path_string);
@@ -20,6 +22,7 @@ pub fn prepare_content(
                 .replace(".md", ".html")
                 .replace(&ctx.build_args.content, &ctx.build_args.output);
             return Ok(vec![oj_file::OjFile {
+                frontmatter: oj_file::OjFrontmatter::Yaml(serde_yaml::Value::Null),
                 abs_input_path: curr_build_path_string.clone(),
                 input_path: curr_build_rel_path,
                 content: fs::read_to_string(curr_build_path_string.clone())?,
@@ -36,7 +39,7 @@ pub fn prepare_content(
 
 #[bon::builder]
 pub fn prepare_folder_content(
-    ctx: &mut context::Context,
+    ctx: &context::Context,
 ) -> eyre::Result<Vec<oj_file::OjFile>, error::Error> {
     let mut res: Vec<oj_file::OjFile> = Vec::new();
     let content_entries = walkdir::WalkDir::new(ctx.build_path.clone())
@@ -67,6 +70,7 @@ pub fn prepare_folder_content(
                 .replace(&ctx.build_args.content, &ctx.build_args.output);
 
             res.push(oj_file::OjFile {
+                frontmatter: oj_file::OjFrontmatter::Yaml(serde_yaml::Value::Null),
                 input_path: entry_path,
                 abs_input_path: abs_entry_path,
                 output_path: entry_output_path_slug,

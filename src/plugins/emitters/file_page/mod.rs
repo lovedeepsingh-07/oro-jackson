@@ -4,6 +4,9 @@ use leptos::prelude::RenderHtml;
 use std::{fs, path};
 use tracing;
 
+#[cfg(test)]
+mod tests;
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct FilePageEmitterOptions {
     pub enable: bool,
@@ -35,11 +38,15 @@ pub fn file_page_emitter(
                     "failed to get the parent folder for the given file".to_string(),
                 )
             })?;
+
+        let file_page_frontmatter = web::pages::PageFrontmatter::new(ctx, &curr_file);
         let file_page_html =
             web::pages::file_page::FilePage(web::pages::file_page::FilePageProps {
                 content: curr_file.content.clone(),
+                frontmatter: file_page_frontmatter,
             })
             .to_html();
+
         let _ = fs::create_dir_all(parent_folder);
         fs::write(&curr_file.output_path, &file_page_html)?;
 

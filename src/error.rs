@@ -1,6 +1,7 @@
 use axum::{self, response::IntoResponse};
 use color_eyre::{self, eyre};
 use hotwatch;
+use serde_yaml;
 use thiserror;
 use toml;
 use tracing;
@@ -21,6 +22,12 @@ pub enum Error {
 
     #[error(transparent)]
     TomlDeError(#[from] toml::de::Error),
+
+    #[error(transparent)]
+    YamlError(#[from] serde_yaml::Error),
+
+    #[error("failed to extract frontmatter, {0}")]
+    FrontmatterError(String),
 
     #[error(transparent)]
     Utf8DecodeError(#[from] std::string::FromUtf8Error),

@@ -28,10 +28,21 @@ impl Context {
             emitter_plugins: Vec::new(),
         };
 
+        // transformers
+        if ctx.config.plugins.transformers.frontmatter.enable {
+            ctx.transformer_plugins
+                .push(plugins::transformers::frontmatter::frontmatter_transformer)
+        }
         if ctx.config.plugins.transformers.markdown.enable {
             ctx.transformer_plugins
                 .push(plugins::transformers::markdown::markdown_transformer)
         }
+        if ctx.config.plugins.transformers.sanitize.enable {
+            ctx.transformer_plugins
+                .push(plugins::transformers::sanitize::sanitize_transformer)
+        }
+
+        // emitters
         if ctx.config.plugins.emitters.static_assets.enable {
             ctx.emitter_plugins
                 .push(plugins::emitters::static_assets::static_assets_emitter)

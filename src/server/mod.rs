@@ -31,7 +31,7 @@ impl WebState {
 }
 
 #[bon::builder]
-pub async fn serve(ctx: &mut context::Context) -> eyre::Result<(), error::Error> {
+pub async fn serve(ctx: &context::Context) -> eyre::Result<(), error::Error> {
     let content_folder = ctx.build_args.content.clone();
     let output_folder = ctx.build_args.output.clone();
 
@@ -72,19 +72,18 @@ pub async fn serve(ctx: &mut context::Context) -> eyre::Result<(), error::Error>
                         path::Path::new(&watcher_ctx.build_path).extension()
                     {
                         if rebuild_file_name.to_string_lossy().to_string() == "md" {
-                            let parsed_files =
-                                match processors::parse().ctx(&mut watcher_ctx).call() {
-                                    Ok(safe_processed_files) => safe_processed_files,
-                                    Err(e) => {
-                                        tracing::error!(
-                                            "failed to parse content files, Error: {:#?}",
-                                            e.to_string()
-                                        );
-                                        std::process::exit(1);
-                                    }
-                                };
+                            let parsed_files = match processors::parse().ctx(&watcher_ctx).call() {
+                                Ok(safe_processed_files) => safe_processed_files,
+                                Err(e) => {
+                                    tracing::error!(
+                                        "failed to parse content files, Error: {:#?}",
+                                        e.to_string()
+                                    );
+                                    std::process::exit(1);
+                                }
+                            };
                             match processors::emit()
-                                .ctx(&mut watcher_ctx)
+                                .ctx(&watcher_ctx)
                                 .parsed_files(&parsed_files)
                                 .call()
                             {

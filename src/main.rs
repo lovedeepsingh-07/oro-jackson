@@ -28,19 +28,19 @@ async fn main() -> eyre::Result<(), error::Error> {
             let config_file_contents = fs::read_to_string(&config_file_path_canon)?;
             let app_config: config::Config = toml::from_str(&config_file_contents)?;
 
-            let mut ctx = context::Context::builder()
+            let ctx = context::Context::builder()
                 .app_config(app_config)
                 .build_args(cli_data.clone())
                 .build()?;
 
-            let parsed_files = processors::parse().ctx(&mut ctx).call()?;
+            let parsed_files = processors::parse().ctx(&ctx).call()?;
             processors::emit()
-                .ctx(&mut ctx)
+                .ctx(&ctx)
                 .parsed_files(&parsed_files)
                 .call()?;
 
             if cli_data.serve == true {
-                server::serve().ctx(&mut ctx).call().await?;
+                server::serve().ctx(&ctx).call().await?;
             }
         }
     };
