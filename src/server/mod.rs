@@ -10,24 +10,14 @@ use tracing;
 
 pub mod handlers;
 #[cfg(test)]
-mod tests;
+pub mod tests;
 
 pub const ADDRESS: std::net::Ipv4Addr = std::net::Ipv4Addr::new(0, 0, 0, 0);
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, bon::Builder)]
 pub struct WebState {
-    pub content_path: String,
-    pub output_path: String,
-}
-#[bon::bon]
-impl WebState {
-    #[builder]
-    pub fn new(content_path: String, output_path: String) -> eyre::Result<WebState, error::Error> {
-        return Ok(WebState {
-            content_path,
-            output_path,
-        });
-    }
+    pub content_path: path::PathBuf,
+    pub output_path: path::PathBuf,
 }
 
 #[bon::builder]
@@ -38,9 +28,8 @@ pub async fn serve(ctx: &context::Context) -> eyre::Result<(), error::Error> {
     let web_state = Arc::new(RwLock::new(
         WebState::builder()
             .content_path(content_folder.clone())
-            .output_path(output_folder.clone())
-            .build()
-            .wrap_err("failed to create web state")?,
+            .output_path(output_folder)
+            .build(),
     ));
 
     let live_reload_layer = tower_livereload::LiveReloadLayer::new();
@@ -67,11 +56,11 @@ pub async fn serve(ctx: &context::Context) -> eyre::Result<(), error::Error> {
                 hotwatch::EventKind::Modify(hotwatch::notify::event::ModifyKind::Data(_))
                 | hotwatch::EventKind::Create(_) => {
                     watcher_ctx.is_rebuild = true;
-                    watcher_ctx.build_path = event.paths[0].to_string_lossy().to_string();
-                    if let Some(rebuild_file_name) =
-                        path::Path::new(&watcher_ctx.build_path).extension()
-                    {
-                        if rebuild_file_name.to_string_lossy().to_string() == "md" {
+                    watcher_ctx.build_path = event.paths[0].clone();
+
+                    if let Some(rebuild_file_extension) = watcher_ctx.build_path.extension() {
+                        let rebuild_file_extension = rebuild_file_extension.to_string_lossy();
+                        if rebuild_file_extension == "md" {
                             let parsed_files = match processors::parse().ctx(&watcher_ctx).call() {
                                 Ok(safe_processed_files) => safe_processed_files,
                                 Err(e) => {

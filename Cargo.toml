@@ -39,3 +39,4 @@ rstest = "0.25.0"
 maplit = "1.0.2"
 serde_yaml = "0.9.34" # TODO: it is deprecated
 regex = "1.11.1"
+vfs = "0.12.1"

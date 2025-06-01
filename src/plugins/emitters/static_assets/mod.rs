@@ -3,7 +3,7 @@ use color_eyre::eyre;
 use std::{fs, path};
 
 #[cfg(test)]
-mod tests;
+pub mod tests;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct StaticAssetsEmitterOptions {
@@ -33,10 +33,10 @@ pub fn static_assets_emitter(
         return Ok(());
     }
 
-    let static_subdir_path = format!("{}/_static", ctx.build_args.output);
+    let static_subdir_path = ctx.build_args.output.join("_static");
 
     for item in StaticAssets::iter() {
-        let item_path = format!("{}/{}", static_subdir_path, item);
+        let item_path = static_subdir_path.join(item.to_string());
 
         let item_contents = get_embedded_file(item.to_string())?;
 
@@ -51,7 +51,7 @@ pub fn static_assets_emitter(
         }
     }
 
-    let theme_css_path = format!("{}/theme.css", static_subdir_path);
+    let theme_css_path = static_subdir_path.join("theme.css");
 
     let theme_css_contents: String = ctx.config.theme.to_css();
 

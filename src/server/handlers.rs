@@ -13,10 +13,10 @@ pub async fn main_route(
 
     if filepath.starts_with("_static") {
         // serve a static file
-        let file_contents = fs::read_to_string(format!("{}/{}", web_state.output_path, filepath))
+        let file_contents = fs::read_to_string(web_state.output_path.join(&filepath))
             .wrap_err("failed to read contents of a static file")?;
 
-        let file_type = mime_guess::from_path(filepath.to_string()).first_or_octet_stream();
+        let file_type = mime_guess::from_path(&filepath).first_or_octet_stream();
 
         return Ok((
             [(axum::http::header::CONTENT_TYPE, file_type.to_string())],
@@ -24,10 +24,16 @@ pub async fn main_route(
         )
             .into_response());
     } else {
-        let curr_file_string = format!("{}/{}.html", web_state.output_path, filepath);
-        let curr_file_path = path::Path::new(&curr_file_string);
-        let curr_file_index_string = format!("{}/{}/index.html", web_state.output_path, filepath);
-        let curr_file_index_path = path::Path::new(&curr_file_index_string);
+        let curr_file_string = format!(
+            "{}.html",
+            web_state
+                .output_path
+                .join(&filepath)
+                .to_string_lossy()
+                .to_string()
+        );
+        let curr_file_path = path::PathBuf::from(&curr_file_string);
+        let curr_file_index_path = web_state.output_path.join(&filepath).join("index.html");
         if curr_file_path.exists() {
             // serve a page file
             let file_contents = fs::read_to_string(curr_file_string)
@@ -42,7 +48,7 @@ pub async fn main_route(
                 .into_response());
         } else if curr_file_index_path.exists() {
             // serve a folder index file
-            let file_contents = fs::read_to_string(curr_file_index_string)
+            let file_contents = fs::read_to_string(curr_file_index_path)
                 .wrap_err("failed to read contents of a folder index file")?;
 
             return Ok((
@@ -68,7 +74,7 @@ pub async fn index_route(
 ) -> error::HandlerResult<axum::response::Response> {
     let web_state = web_state.write().await;
 
-    let file_content = fs::read_to_string(format!("{}/index.html", web_state.output_path))
+    let file_content = fs::read_to_string(web_state.output_path.join("index.html"))
         .wrap_err("failed to read contents of the index(home) file")?;
     return Ok((
         [(

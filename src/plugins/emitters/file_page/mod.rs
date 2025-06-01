@@ -5,7 +5,7 @@ use std::{fs, path};
 use tracing;
 
 #[cfg(test)]
-mod tests;
+pub mod tests;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct FilePageEmitterOptions {
@@ -22,12 +22,12 @@ pub fn file_page_emitter(
             .file_name()
             .ok_or_else(|| {
                 error::Error::NotFound(
-                    "failed to get the parent folder for the given file".to_string(),
+                    "failed to get the file name for the current file".to_string(),
                 )
             })?
             .to_string_lossy()
             .to_string()
-            == String::from("index.md")
+            == "index.md"
         {
             continue;
         };

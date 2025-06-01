@@ -9,21 +9,33 @@ pub struct PageFrontmatter {
     title: String,
 }
 
-pub fn get_title_from_file(ctx: &context::Context, input_path: &str) -> String {
+pub fn get_title_from_file(ctx: &context::Context, input_path: &path::PathBuf) -> String {
     let curr_file_path = path::Path::new(input_path);
     if let Some(curr_file_name) = curr_file_path.file_stem() {
         if curr_file_name == "index" {
             if let Some(parent_path) = curr_file_path.parent() {
-                if parent_path.to_string_lossy().to_string() == ctx.build_args.content {
+                if parent_path == ctx.build_args.content {
                     return ctx.config.title.clone();
                 } else {
                     if let Some(parent_name) = parent_path.file_name() {
-                        return format!("Folder: {}", parent_name.to_string_lossy().to_string());
+                        return format!(
+                            "Folder: {}",
+                            parent_name.to_str().unwrap_or_else(|| {
+                                tracing::warn!("failed to compute the page title from folder name");
+                                "null"
+                            })
+                        );
                     }
                 }
             }
         }
-        return curr_file_name.to_string_lossy().to_string();
+        return curr_file_name
+            .to_str()
+            .unwrap_or_else(|| {
+                tracing::warn!("failed to compute the page title from file name");
+                "null"
+            })
+            .to_string();
     }
     return "null".to_string();
 }

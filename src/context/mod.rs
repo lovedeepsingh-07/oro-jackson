@@ -1,13 +1,37 @@
 use crate::{cli, config, error, plugins};
 use bon;
 use color_eyre::eyre;
+use std::path;
+use toml;
+
+#[cfg(test)]
+pub mod tests;
+
+#[derive(Debug, Clone)]
+pub struct BuildArgs {
+    pub config: path::PathBuf,
+    pub content: path::PathBuf,
+    pub output: path::PathBuf,
+    pub serve: bool,
+}
+
+impl From<cli::Build> for BuildArgs {
+    fn from(value: cli::Build) -> Self {
+        return Self {
+            config: path::PathBuf::from(value.config),
+            content: path::PathBuf::from(value.content),
+            output: path::PathBuf::from(value.output),
+            serve: value.serve,
+        };
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct Context {
     pub config: config::Config,
-    pub build_args: cli::Build,
+    pub build_args: BuildArgs,
     pub is_rebuild: bool,
-    pub build_path: String,
+    pub build_path: path::PathBuf,
     pub transformer_plugins: Vec<plugins::Transformer>,
     pub emitter_plugins: Vec<plugins::Emitter>,
 }
@@ -16,12 +40,14 @@ pub struct Context {
 impl Context {
     #[builder]
     pub fn new(
-        app_config: config::Config,
-        build_args: cli::Build,
+        config_file_content: &str,
+        build_args: BuildArgs,
     ) -> eyre::Result<Self, error::Error> {
+        let parsed_app_config: config::Config = toml::from_str(config_file_content)?;
+
         let mut ctx = Context {
-            config: app_config,
-            build_path: build_args.clone().content,
+            config: parsed_app_config,
+            build_path: build_args.content.clone(),
             is_rebuild: false,
             build_args,
             transformer_plugins: Vec::new(),

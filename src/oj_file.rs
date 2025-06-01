@@ -1,13 +1,14 @@
 use bon;
 use serde_yaml;
+use std::path;
 use toml;
 
 #[derive(Debug, Clone, bon::Builder)]
 pub struct OjFile {
     pub frontmatter: OjFrontmatter,
-    pub input_path: String,
-    pub abs_input_path: String,
-    pub output_path: String,
+    pub input_path: path::PathBuf,
+    pub abs_input_path: path::PathBuf,
+    pub output_path: path::PathBuf,
     pub content: String,
 }
 
@@ -21,9 +22,9 @@ impl Default for OjFile {
     fn default() -> Self {
         return OjFile {
             frontmatter: OjFrontmatter::Yaml(serde_yaml::Value::Null),
-            input_path: String::new(),
-            abs_input_path: String::new(),
-            output_path: String::new(),
+            input_path: path::PathBuf::new(),
+            abs_input_path: path::PathBuf::new(),
+            output_path: path::PathBuf::new(),
             content: String::new(),
         };
     }
