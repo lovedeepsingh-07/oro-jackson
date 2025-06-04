@@ -1,7 +1,6 @@
 use crate::{context, error, oj_file, utils, web};
 use color_eyre::eyre;
 use leptos::prelude::RenderHtml;
-use std::{fs, path};
 
 #[cfg(test)]
 pub mod tests;
@@ -27,38 +26,33 @@ pub fn prepare_folder_files(
 
     for curr_file in content_files {
         let curr_file_parents = get_parent_folders()
-            .curr_file_input_path(&curr_file.input_path)
+            .curr_file_input_path(curr_file.input_path.clone())
             .content_base_path(ctx.build_args.content.clone())
             .call()?;
         for curr_parent_path in curr_file_parents {
-            if folder_files
-                .iter()
-                .any(|f| f.input_path == path::PathBuf::from(&curr_parent_path).join("index.md"))
-            {
+            let curr_index_path = curr_parent_path.join("index.md")?;
+
+            if folder_files.iter().any(|f| f.input_path == curr_index_path) {
                 continue;
             }
-            let mut curr_index_file: oj_file::OjFile = oj_file::OjFile::default();
-            if let Some(folder_file) = content_files.iter().find(|cf| {
-                cf.input_path
-                    == get_folder_index_file_path()
-                        .folder_path(&curr_parent_path)
-                        .call()
-            }) {
-                curr_index_file = folder_file.clone();
+            if let Some(folder_file) = content_files
+                .iter()
+                .find(|cf| cf.input_path == curr_index_path)
+            {
+                folder_files.push(folder_file.clone());
             } else {
-                // the frontmatter stays a null value
-                curr_index_file.input_path =
-                    path::PathBuf::from(&curr_parent_path).join("index.md");
-                curr_index_file.abs_input_path =
-                    fs::canonicalize(&curr_parent_path)?.join("index.md");
-                curr_index_file.output_path = path::PathBuf::from(&curr_parent_path.replace(
-                    &ctx.build_args.content.to_string_lossy().to_string(),
-                    &ctx.build_args.output.to_string_lossy().to_string(),
-                ))
-                .join("index.html");
-                // the content stays an empty string
+                let index_file = oj_file::OjFile {
+                    frontmatter: oj_file::OjFrontmatter::Yaml(serde_yaml::Value::Null),
+                    input_path: curr_index_path,
+                    output_path: ctx
+                        .build_args
+                        .output
+                        .join(curr_parent_path.as_str())?
+                        .join("index.html")?,
+                    content: String::new(),
+                };
+                folder_files.push(index_file);
             }
-            folder_files.push(curr_index_file);
         }
     }
     return Ok(folder_files);
@@ -75,17 +69,10 @@ pub fn folder_page_emitter(
         .call()?;
 
     for index_file in folder_files {
-        let parent_folder = path::Path::new(&index_file.input_path)
-            .parent()
-            .ok_or_else(|| {
-                error::Error::NotFound(
-                    "failed to get the parent folder for the given file".to_string(),
-                )
-            })?;
+        let parent_folder = index_file.input_path.parent();
 
         let folder_children = get_children()
-            .index_file_parent_folder(&parent_folder.to_string_lossy().to_string())
-            .output_folder_path(ctx.build_args.content.clone())
+            .index_file_parent_folder(parent_folder)
             .call()?;
 
         let folder_page_frontmatter = web::pages::PageFrontmatter::new(ctx, &index_file);
@@ -103,19 +90,12 @@ pub fn folder_page_emitter(
             })
             .to_html();
 
-        let _ = fs::create_dir_all(
-            path::Path::new(&index_file.output_path)
-                .parent()
-                .ok_or_else(|| {
-                    error::Error::NotFound(
-                        "failed to get the parent folder for the given file".to_string(),
-                    )
-                })?,
-        );
-        fs::write(&index_file.output_path, &folder_page_html)?;
+        index_file.output_path.parent().create_dir_all()?;
+        let mut f = index_file.output_path.create_file()?;
+        f.write_all(folder_page_html.as_bytes())?;
 
         if ctx.config.settings.logging == true {
-            tracing::info!("Successfully built {:#?}", index_file.output_path);
+            tracing::info!("Successfully built {:#?}", index_file.output_path.as_str());
         }
     }
     return Ok(());
@@ -123,72 +103,51 @@ pub fn folder_page_emitter(
 
 #[bon::builder]
 pub fn get_parent_folders(
-    curr_file_input_path: &path::PathBuf,
-    content_base_path: path::PathBuf,
-) -> eyre::Result<Vec<String>> {
-    let mut folder_name = curr_file_input_path.parent().ok_or_else(|| {
-        error::Error::NotFound("failed to get the parent folder for the given file".to_string())
-    })?;
+    curr_file_input_path: vfs::VfsPath,
+    content_base_path: vfs::VfsPath,
+) -> eyre::Result<Vec<vfs::VfsPath>> {
+    let mut folder = curr_file_input_path.parent();
 
-    let mut parent_folders: Vec<String> = vec![folder_name.to_string_lossy().to_string()];
+    let mut parent_folders: Vec<vfs::VfsPath> = vec![folder.clone()];
 
-    while folder_name != content_base_path {
-        folder_name = folder_name.parent().ok_or_else(|| {
-            error::Error::NotFound("failed to get the parent folder for the given file".to_string())
-        })?;
-        parent_folders.push(folder_name.to_string_lossy().to_string());
+    while folder != content_base_path {
+        folder = folder.parent();
+        parent_folders.push(folder.clone());
     }
     return Ok(parent_folders);
 }
 
 #[bon::builder]
 pub fn get_children(
-    index_file_parent_folder: &str,
-    output_folder_path: path::PathBuf,
+    index_file_parent_folder: vfs::VfsPath,
 ) -> eyre::Result<Vec<FolderPageChildLink>> {
     let mut children: Vec<FolderPageChildLink> = Vec::new();
 
-    if !path::Path::new(&index_file_parent_folder).exists() {
+    if !index_file_parent_folder.exists()? {
         return Ok(children);
     }
 
-    for child_entry in fs::read_dir(index_file_parent_folder)? {
-        let child_entry = match child_entry {
-            Ok(folder_entry) => folder_entry,
-            Err(e) => {
-                tracing::warn!(
-                    "unable to access file from content folder, error: {:#?}",
-                    e.to_string()
-                );
-                continue;
-            }
-        };
-
-        let child_entry_file_name = child_entry.file_name();
-        let child_entry_path = child_entry.path();
+    for child_entry in index_file_parent_folder.read_dir()? {
+        let child_entry_file_name = child_entry.filename();
 
         if child_entry_file_name == "_static"
-            || (child_entry_path.is_file()
+            || (child_entry.is_file()?
                 && (child_entry_file_name == "index.md"
-                    || !utils::is_markdown_file()
-                        .file_path(child_entry_path.clone())
-                        .call()))
-            || utils::is_hidden_file()
-                .file_path(child_entry_path.clone())
-                .call()
+                    || !utils::is_markdown_file().file_path(&child_entry).call()))
+            || utils::is_hidden_file().file_path(&child_entry).call()
         {
             continue;
         }
 
-        if child_entry_path.is_dir() {
-            match fs::read_dir(&child_entry_path) {
+        if child_entry.is_dir()? {
+            match child_entry.read_dir() {
                 Ok(dir_iter) => {
                     // Collect all entries, filtering out errors
-                    let entries: Vec<_> = dir_iter.filter_map(Result::ok).collect();
+                    let entries: Vec<_> = dir_iter.collect();
 
                     // Skip if the directory is empty or only contains a `.keep` file
                     if entries.is_empty()
-                        || (entries.len() == 1 && entries[0].file_name() == ".keep")
+                        || (entries.len() == 1 && entries[0].filename() == ".keep")
                     {
                         continue;
                     }
@@ -196,7 +155,7 @@ pub fn get_children(
                 Err(e) => {
                     tracing::warn!(
                         "unable to read directory {:?}, error: {:#?}",
-                        child_entry_path,
+                        child_entry,
                         e.to_string()
                     );
                     continue;
@@ -204,30 +163,19 @@ pub fn get_children(
             }
         };
 
-        let child_entry_path_string = child_entry_path
-            .to_string_lossy()
-            .to_string()
-            .replace(".md", "");
+        let child_entry_path_string = child_entry.as_str().replace(".md", "");
 
         children.push(
             FolderPageChildLink::builder()
                 .name(
                     child_entry_path_string
-                        .replace(index_file_parent_folder, "")
+                        .replace(index_file_parent_folder.as_str(), "")
                         .replace("/", ""),
                 )
-                .href(
-                    child_entry_path_string
-                        .replace(&output_folder_path.to_string_lossy().to_string(), ""),
-                )
+                .href(child_entry_path_string)
                 .build(),
         );
     }
 
     return Ok(children);
-}
-
-#[bon::builder]
-pub fn get_folder_index_file_path(folder_path: &str) -> path::PathBuf {
-    return path::PathBuf::from(&folder_path).join("index.md");
 }

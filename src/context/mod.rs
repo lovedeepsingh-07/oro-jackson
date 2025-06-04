@@ -1,29 +1,17 @@
-use crate::{cli, config, error, plugins};
+use crate::{config, error, plugins};
 use bon;
 use color_eyre::eyre;
-use std::path;
 use toml;
+use vfs;
 
 #[cfg(test)]
 pub mod tests;
 
 #[derive(Debug, Clone)]
 pub struct BuildArgs {
-    pub config: path::PathBuf,
-    pub content: path::PathBuf,
-    pub output: path::PathBuf,
+    pub content: vfs::VfsPath,
+    pub output: vfs::VfsPath,
     pub serve: bool,
-}
-
-impl From<cli::Build> for BuildArgs {
-    fn from(value: cli::Build) -> Self {
-        return Self {
-            config: path::PathBuf::from(value.config),
-            content: path::PathBuf::from(value.content),
-            output: path::PathBuf::from(value.output),
-            serve: value.serve,
-        };
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -31,7 +19,7 @@ pub struct Context {
     pub config: config::Config,
     pub build_args: BuildArgs,
     pub is_rebuild: bool,
-    pub build_path: path::PathBuf,
+    pub build_path: vfs::VfsPath,
     pub transformer_plugins: Vec<plugins::Transformer>,
     pub emitter_plugins: Vec<plugins::Emitter>,
 }
@@ -40,8 +28,8 @@ pub struct Context {
 impl Context {
     #[builder]
     pub fn new(
-        config_file_content: &str,
         build_args: BuildArgs,
+        config_file_content: &str,
     ) -> eyre::Result<Self, error::Error> {
         let parsed_app_config: config::Config = toml::from_str(config_file_content)?;
 

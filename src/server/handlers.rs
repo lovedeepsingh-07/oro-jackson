@@ -2,7 +2,7 @@ use crate::{error, server};
 use axum::{self, response::IntoResponse};
 use color_eyre::eyre::WrapErr;
 use mime_guess;
-use std::{fs, path, sync::Arc};
+use std::sync::Arc;
 use tokio::sync::RwLock;
 
 pub async fn main_route(
@@ -13,42 +13,39 @@ pub async fn main_route(
 
     if filepath.starts_with("_static") {
         // serve a static file
-        let file_contents = fs::read_to_string(web_state.output_path.join(&filepath))
+        let file_content = web_state
+            .output_path
+            .join(&filepath)?
+            .read_to_string()
             .wrap_err("failed to read contents of a static file")?;
 
         let file_type = mime_guess::from_path(&filepath).first_or_octet_stream();
 
         return Ok((
             [(axum::http::header::CONTENT_TYPE, file_type.to_string())],
-            file_contents,
+            file_content,
         )
             .into_response());
     } else {
-        let curr_file_string = format!(
-            "{}.html",
-            web_state
-                .output_path
-                .join(&filepath)
-                .to_string_lossy()
-                .to_string()
-        );
-        let curr_file_path = path::PathBuf::from(&curr_file_string);
-        let curr_file_index_path = web_state.output_path.join(&filepath).join("index.html");
-        if curr_file_path.exists() {
+        let curr_file = web_state.output_path.join(format!("{}.html", filepath))?;
+        let curr_index_file = web_state.output_path.join(&filepath)?.join("index.html")?;
+        if curr_file.exists()? {
             // serve a page file
-            let file_contents = fs::read_to_string(curr_file_string)
+            let file_content = curr_file
+                .read_to_string()
                 .wrap_err("failed to read contents of a page file")?;
             return Ok((
                 [(
                     axum::http::header::CONTENT_TYPE,
                     String::from("text/html; charset=utf-8"),
                 )],
-                file_contents,
+                file_content,
             )
                 .into_response());
-        } else if curr_file_index_path.exists() {
+        } else if curr_index_file.exists()? {
             // serve a folder index file
-            let file_contents = fs::read_to_string(curr_file_index_path)
+            let file_content = curr_index_file
+                .read_to_string()
                 .wrap_err("failed to read contents of a folder index file")?;
 
             return Ok((
@@ -56,7 +53,7 @@ pub async fn main_route(
                     axum::http::header::CONTENT_TYPE,
                     String::from("text/html; charset=utf-8"),
                 )],
-                file_contents,
+                file_content,
             )
                 .into_response());
         } else {
@@ -74,7 +71,9 @@ pub async fn index_route(
 ) -> error::HandlerResult<axum::response::Response> {
     let web_state = web_state.write().await;
 
-    let file_content = fs::read_to_string(web_state.output_path.join("index.html"))
+    let curr_file = web_state.output_path.join("index.html")?;
+    let file_content = curr_file
+        .read_to_string()
         .wrap_err("failed to read contents of the index(home) file")?;
     return Ok((
         [(

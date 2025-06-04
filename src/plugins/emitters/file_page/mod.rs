@@ -1,7 +1,6 @@
 use crate::{context, error, oj_file, web};
 use color_eyre::eyre;
 use leptos::prelude::RenderHtml;
-use std::{fs, path};
 use tracing;
 
 #[cfg(test)]
@@ -18,26 +17,9 @@ pub fn file_page_emitter(
 ) -> eyre::Result<(), error::Error> {
     let _ = ctx;
     for curr_file in content_files {
-        if path::Path::new(&curr_file.input_path)
-            .file_name()
-            .ok_or_else(|| {
-                error::Error::NotFound(
-                    "failed to get the file name for the current file".to_string(),
-                )
-            })?
-            .to_string_lossy()
-            .to_string()
-            == "index.md"
-        {
+        if curr_file.input_path.filename() == "index.md" {
             continue;
         };
-        let parent_folder = path::Path::new(&curr_file.output_path)
-            .parent()
-            .ok_or_else(|| {
-                error::Error::NotFound(
-                    "failed to get the parent folder for the given file".to_string(),
-                )
-            })?;
 
         let file_page_frontmatter = web::pages::PageFrontmatter::new(ctx, &curr_file);
         let file_page_html =
@@ -47,11 +29,12 @@ pub fn file_page_emitter(
             })
             .to_html();
 
-        let _ = fs::create_dir_all(parent_folder);
-        fs::write(&curr_file.output_path, &file_page_html)?;
+        curr_file.output_path.parent().create_dir_all()?;
+        let mut f = curr_file.output_path.create_file()?;
+        f.write_all(file_page_html.as_bytes())?;
 
         if ctx.config.settings.logging == true {
-            tracing::info!("Successfully built {:#?}", curr_file.output_path);
+            tracing::info!("Successfully built {:#?}", curr_file.output_path.as_str());
         }
     }
     return Ok(());

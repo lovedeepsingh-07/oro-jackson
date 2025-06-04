@@ -9,24 +9,15 @@ pub struct PageFrontmatter {
     title: String,
 }
 
-pub fn get_title_from_file(ctx: &context::Context, input_path: &path::PathBuf) -> String {
-    let curr_file_path = path::Path::new(input_path);
-    if let Some(curr_file_name) = curr_file_path.file_stem() {
+pub fn get_title_from_file(ctx: &context::Context, input_path: vfs::VfsPath) -> String {
+    if let Some(curr_file_name) = path::PathBuf::from(input_path.filename()).file_stem() {
         if curr_file_name == "index" {
-            if let Some(parent_path) = curr_file_path.parent() {
-                if parent_path == ctx.build_args.content {
-                    return ctx.config.title.clone();
-                } else {
-                    if let Some(parent_name) = parent_path.file_name() {
-                        return format!(
-                            "Folder: {}",
-                            parent_name.to_str().unwrap_or_else(|| {
-                                tracing::warn!("failed to compute the page title from folder name");
-                                "null"
-                            })
-                        );
-                    }
-                }
+            let parent_path = input_path.parent();
+            if parent_path == ctx.build_args.content {
+                return ctx.config.title.clone();
+            } else {
+                let parent_name = parent_path.filename();
+                return format!("Folder: {}", parent_name);
             }
         }
         return curr_file_name
@@ -46,15 +37,15 @@ impl PageFrontmatter {
         match &curr_file.frontmatter {
             oj_file::OjFrontmatter::Yaml(frontmatter) => {
                 if frontmatter.is_null() {
-                    page_title = get_title_from_file(ctx, &curr_file.input_path);
+                    page_title = get_title_from_file(ctx, curr_file.input_path.clone());
                 } else if let Some(title) = frontmatter.get("title") {
                     if let Ok(ok_title) = serde_yaml::from_value::<String>(title.clone()) {
                         page_title = ok_title;
                     } else {
-                        page_title = get_title_from_file(ctx, &curr_file.input_path);
+                        page_title = get_title_from_file(ctx, curr_file.input_path.clone());
                     }
                 } else {
-                    page_title = get_title_from_file(ctx, &curr_file.input_path);
+                    page_title = get_title_from_file(ctx, curr_file.input_path.clone());
                 }
             }
             oj_file::OjFrontmatter::Toml(frontmatter) => {
@@ -90,7 +81,7 @@ pub fn BaseHTML(children: Children, frontmatter: PageFrontmatter) -> impl IntoVi
 
                 <script type="module" src="/_static/scripts/mermaid.render.js"></script>
             </head>
-            <body class="overflow-x-auto">
+            <body>
                 <div class="fixed top-0 right-0 left-0 z-[80] flex items-center justify-end p-4">
                     <label class="swap swap-rotate btn btn-square btn-ghost hover:bg-base-300 stroke-base-content">
                         <input type="checkbox" id="oj-theme-toggle-checkbox" />
@@ -134,13 +125,15 @@ pub fn BaseHTML(children: Children, frontmatter: PageFrontmatter) -> impl IntoVi
                         >
                     </label>
                 </div>
-                <div class="mt-[64px] mb-[24px] px-4">
-                    <div class="mx-auto max-w-5xl">
-                        <p class="text-4xl font-bold text-wrap">{frontmatter.title.clone()}</p>
+                <div class="overflow-x-auto">
+                    <div class="mt-[64px] mb-[24px] px-4">
+                        <div class="mx-auto max-w-5xl">
+                            <p class="text-4xl font-bold text-wrap">{frontmatter.title.clone()}</p>
+                        </div>
                     </div>
+                    {children()}
+                    <script src="/_static/scripts/theme.control.js"></script>
                 </div>
-                {children()}
-                <script src="/_static/scripts/theme.control.js"></script>
             </body>
         </html>
     }
