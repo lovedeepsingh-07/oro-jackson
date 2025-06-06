@@ -19,8 +19,10 @@ async fn main() -> eyre::Result<(), error::Error> {
         cli::SubCommands::Build(cli_data) => {
             let output_path_fs: vfs::PhysicalFS = vfs::PhysicalFS::new(&cli_data.output);
             let output_path_root: vfs::VfsPath = output_path_fs.into();
+
             let content_path_fs: vfs::PhysicalFS = vfs::PhysicalFS::new(&cli_data.content);
             let content_path_root: vfs::VfsPath = content_path_fs.into();
+
             let config_path: path::PathBuf = path::PathBuf::from(&cli_data.config);
 
             // if the build directory already exists upon build, we must remove it
@@ -31,11 +33,11 @@ async fn main() -> eyre::Result<(), error::Error> {
 
             let config_file_content: String = fs::read_to_string(config_path)?;
 
-            let build_args = context::BuildArgs {
-                content: content_path_root,
-                output: output_path_root,
-                serve: cli_data.serve,
-            };
+            let build_args = context::BuildArgs::builder()
+                .content(content_path_root)
+                .output(output_path_root)
+                .serve(cli_data.serve)
+                .build();
 
             let ctx = context::Context::builder()
                 .build_args(build_args)

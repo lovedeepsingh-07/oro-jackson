@@ -1,4 +1,4 @@
-use crate::{context, error, oj_file};
+use crate::{context, error, frontmatter, oj_file};
 use color_eyre::eyre;
 use regex::Regex;
 
@@ -48,15 +48,17 @@ pub fn frontmatter_transformer<'a>(
                 markdown_content = markd_content;
                 match expr_type.as_str() {
                     "yaml" => {
-                        curr_file.frontmatter = oj_file::OjFrontmatter::Yaml(
-                            serde_yaml::from_str::<serde_yaml::Value>(&frontmatter_content)?,
-                        )
+                        curr_file.frontmatter.source =
+                            frontmatter::FrontmatterSource::Yaml(serde_yaml::from_str::<
+                                serde_yaml::Value,
+                            >(
+                                &frontmatter_content
+                            )?)
                     }
                     "toml" => {
-                        curr_file.frontmatter =
-                            oj_file::OjFrontmatter::Toml(toml::from_str::<toml::Value>(
-                                &frontmatter_content,
-                            )?)
+                        curr_file.frontmatter.source = frontmatter::FrontmatterSource::Toml(
+                            toml::from_str::<toml::Value>(&frontmatter_content)?,
+                        )
                     }
                     _ => {
                         return Err(eyre::eyre!(error::Error::FrontmatterError(String::from(

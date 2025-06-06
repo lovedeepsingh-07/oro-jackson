@@ -1,7 +1,4 @@
-use crate::{
-    plugins,
-    web::{self, pages::BaseHTML},
-};
+use crate::{frontmatter, pages::BaseHTML, plugins};
 use leptos::prelude::*;
 
 #[component]
@@ -9,7 +6,7 @@ pub fn FolderPage(
     content: String,
     subfiles: Vec<plugins::emitters::folder_page::FolderPageChildLink>,
     show_folder_page_children: bool,
-    frontmatter: web::pages::PageFrontmatter,
+    frontmatter: frontmatter::Frontmatter,
 ) -> impl IntoView {
     let sub_files = match show_folder_page_children {
         true => {

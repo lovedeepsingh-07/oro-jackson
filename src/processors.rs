@@ -16,6 +16,7 @@ pub fn emit(
     ctx: &context::Context,
     parsed_files: &Vec<oj_file::OjFile>,
 ) -> eyre::Result<(), error::Error> {
+    tracing::info!("{:#?}", parsed_files);
     for emtr in &ctx.emitter_plugins {
         emtr(ctx, parsed_files)?;
     }

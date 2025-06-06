@@ -1,6 +1,5 @@
-use crate::{context, error, oj_file};
+use crate::{context, error, frontmatter, oj_file};
 use color_eyre::eyre;
-use serde_yaml;
 
 #[cfg(test)]
 pub mod tests;
@@ -37,7 +36,7 @@ pub fn prepare_folder_content(
                 .join(entry.as_str().replace(".md", ".html"))?;
 
             res.push(oj_file::OjFile {
-                frontmatter: oj_file::OjFrontmatter::Yaml(serde_yaml::Value::Null),
+                frontmatter: frontmatter::Frontmatter::default(),
                 input_path: entry,
                 output_path: entry_output_path,
                 content: file_content,

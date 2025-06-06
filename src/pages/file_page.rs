@@ -1,8 +1,8 @@
-use crate::web::{self, pages::BaseHTML};
+use crate::{frontmatter, pages::BaseHTML};
 use leptos::prelude::*;
 
 #[component]
-pub fn FilePage(content: String, frontmatter: web::pages::PageFrontmatter) -> impl IntoView {
+pub fn FilePage(content: String, frontmatter: frontmatter::Frontmatter) -> impl IntoView {
     view! {
         <BaseHTML frontmatter>
             <div class="mb-[100px] px-4">

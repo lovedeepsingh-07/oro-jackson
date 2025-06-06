@@ -4,10 +4,7 @@ use color_eyre::eyre;
 use toml;
 use vfs;
 
-#[cfg(test)]
-pub mod tests;
-
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, bon::Builder)]
 pub struct BuildArgs {
     pub content: vfs::VfsPath,
     pub output: vfs::VfsPath,

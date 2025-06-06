@@ -1,4 +1,4 @@
-use crate::{context, error, oj_file, utils, web};
+use crate::{context, error, frontmatter, oj_file, pages, utils};
 use color_eyre::eyre;
 use leptos::prelude::RenderHtml;
 
@@ -42,7 +42,7 @@ pub fn prepare_folder_files(
                 folder_files.push(folder_file.clone());
             } else {
                 let index_file = oj_file::OjFile {
-                    frontmatter: oj_file::OjFrontmatter::Yaml(serde_yaml::Value::Null),
+                    frontmatter: frontmatter::Frontmatter::default(),
                     input_path: curr_index_path,
                     output_path: ctx
                         .build_args
@@ -75,9 +75,9 @@ pub fn folder_page_emitter(
             .index_file_parent_folder(parent_folder)
             .call()?;
 
-        let folder_page_frontmatter = web::pages::PageFrontmatter::new(ctx, &index_file);
+        let folder_page_frontmatter = frontmatter::Frontmatter::new(ctx, &index_file);
         let folder_page_html =
-            web::pages::folder_page::FolderPage(web::pages::folder_page::FolderPageProps {
+            pages::folder_page::FolderPage(pages::folder_page::FolderPageProps {
                 frontmatter: folder_page_frontmatter,
                 content: index_file.content.clone(),
                 subfiles: folder_children,

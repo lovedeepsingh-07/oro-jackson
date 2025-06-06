@@ -1,65 +1,11 @@
-use crate::{context, oj_file};
+use crate::frontmatter;
 use leptos::prelude::*;
-use std::path;
 
 pub mod file_page;
 pub mod folder_page;
 
-pub struct PageFrontmatter {
-    title: String,
-}
-
-pub fn get_title_from_file(ctx: &context::Context, input_path: vfs::VfsPath) -> String {
-    if let Some(curr_file_name) = path::PathBuf::from(input_path.filename()).file_stem() {
-        if curr_file_name == "index" {
-            let parent_path = input_path.parent();
-            if parent_path == ctx.build_args.content {
-                return ctx.config.title.clone();
-            } else {
-                let parent_name = parent_path.filename();
-                return format!("Folder: {}", parent_name);
-            }
-        }
-        return curr_file_name
-            .to_str()
-            .unwrap_or_else(|| {
-                tracing::warn!("failed to compute the page title from file name");
-                "null"
-            })
-            .to_string();
-    }
-    return "null".to_string();
-}
-
-impl PageFrontmatter {
-    pub fn new(ctx: &context::Context, curr_file: &oj_file::OjFile) -> Self {
-        let mut page_title = String::from("null");
-        match &curr_file.frontmatter {
-            oj_file::OjFrontmatter::Yaml(frontmatter) => {
-                if frontmatter.is_null() {
-                    page_title = get_title_from_file(ctx, curr_file.input_path.clone());
-                } else if let Some(title) = frontmatter.get("title") {
-                    if let Ok(ok_title) = serde_yaml::from_value::<String>(title.clone()) {
-                        page_title = ok_title;
-                    } else {
-                        page_title = get_title_from_file(ctx, curr_file.input_path.clone());
-                    }
-                } else {
-                    page_title = get_title_from_file(ctx, curr_file.input_path.clone());
-                }
-            }
-            oj_file::OjFrontmatter::Toml(frontmatter) => {
-                if let Some(title) = frontmatter.get("title") {
-                    page_title = title.to_string();
-                }
-            }
-        }
-        return PageFrontmatter { title: page_title };
-    }
-}
-
 #[component]
-pub fn BaseHTML(children: Children, frontmatter: PageFrontmatter) -> impl IntoView {
+pub fn BaseHTML(children: Children, frontmatter: frontmatter::Frontmatter) -> impl IntoView {
     view! {
         <!doctype html>
         <html lang="en" data-theme="oj-dark">

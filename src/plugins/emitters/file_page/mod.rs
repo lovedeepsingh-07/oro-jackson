@@ -1,4 +1,4 @@
-use crate::{context, error, oj_file, web};
+use crate::{context, error, frontmatter, oj_file, pages};
 use color_eyre::eyre;
 use leptos::prelude::RenderHtml;
 use tracing;
@@ -21,13 +21,12 @@ pub fn file_page_emitter(
             continue;
         };
 
-        let file_page_frontmatter = web::pages::PageFrontmatter::new(ctx, &curr_file);
-        let file_page_html =
-            web::pages::file_page::FilePage(web::pages::file_page::FilePageProps {
-                content: curr_file.content.clone(),
-                frontmatter: file_page_frontmatter,
-            })
-            .to_html();
+        let file_page_frontmatter = frontmatter::Frontmatter::new(ctx, &curr_file);
+        let file_page_html = pages::file_page::FilePage(pages::file_page::FilePageProps {
+            content: curr_file.content.clone(),
+            frontmatter: file_page_frontmatter,
+        })
+        .to_html();
 
         curr_file.output_path.parent().create_dir_all()?;
         let mut f = curr_file.output_path.create_file()?;
