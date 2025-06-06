@@ -1,25 +1,33 @@
+use crate::frontmatter;
 use leptos::prelude::*;
 
 pub mod file_page;
-    pub mod folder_page;
+pub mod folder_page;
 
 #[component]
-pub fn BaseHTML(children: Children) -> impl IntoView {
+pub fn BaseHTML(children: Children, frontmatter: frontmatter::Frontmatter) -> impl IntoView {
     view! {
         <!doctype html>
         <html lang="en" data-theme="oj-dark">
             <head>
-                <title>oro-jackson</title>
+                <title>{frontmatter.title.clone()}</title>
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
                 <link rel="stylesheet" href="/_static/theme.css" />
                 <link rel="stylesheet" href="/_static/style.css" />
-                <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" integrity="sha384-5TcZemv2l/9On385z///+d7MSYlvIEw9FuZTIdZ14vJLqWphw7e7ZPuOiCHJcFCP" crossorigin="anonymous"/>
 
-                <script src="/_static/scripts/katex.render.js"></script>
+                <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" integrity="sha384-5TcZemv2l/9On385z///+d7MSYlvIEw9FuZTIdZ14vJLqWphw7e7ZPuOiCHJcFCP" crossorigin="anonymous"/>
                 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js" integrity="sha384-cMkvdD8LoxVzGF/RPUKAcvmm49FQ0oxwDF3BGKtDXcEc+T1b2N+teh/OJfpU0jr6" crossorigin="anonymous"></script>
+                <script src="/_static/scripts/katex.render.js"></script> // custom katex render script
+
+                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/default.min.css" />
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+                <link rel="stylesheet" href="/_static/highlightjs.theme.css" />
+                <script src="/_static/scripts/highlightjs.render.js"></script>
+
+                <script type="module" src="/_static/scripts/mermaid.render.js"></script>
             </head>
-            <body class="overflow-x-auto">
+            <body>
                 <div class="fixed top-0 right-0 left-0 z-[80] flex items-center justify-end p-4">
                     <label class="swap swap-rotate btn btn-square btn-ghost hover:bg-base-300 stroke-base-content">
                         <input type="checkbox" id="oj-theme-toggle-checkbox" />
@@ -63,8 +71,15 @@ pub fn BaseHTML(children: Children) -> impl IntoView {
                         >
                     </label>
                 </div>
-                {children()}
-                <script src="/_static/scripts/theme.control.js"></script>
+                <div class="overflow-x-auto">
+                    <div class="mt-[64px] mb-[24px] px-4">
+                        <div class="mx-auto max-w-5xl">
+                            <p class="text-4xl font-bold text-wrap">{frontmatter.title.clone()}</p>
+                        </div>
+                    </div>
+                    {children()}
+                    <script src="/_static/scripts/theme.control.js"></script>
+                </div>
             </body>
         </html>
     }

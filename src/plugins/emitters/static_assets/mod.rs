@@ -1,6 +1,8 @@
 use crate::{context, error, oj_file};
 use color_eyre::eyre;
-use std::{fs, path};
+
+#[cfg(test)]
+pub mod tests;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct StaticAssetsEmitterOptions {
@@ -15,8 +17,8 @@ pub fn get_embedded_file(filepath: String) -> eyre::Result<String, error::Error>
     let file = StaticAssets::get(filepath.as_str()).ok_or_else(|| {
         error::Error::NotFound("no such embedded static file or directory".to_string())
     })?;
-    let contents = String::from_utf8(file.data.to_vec())?;
-    return Ok(contents);
+    let content = String::from_utf8(file.data.to_vec())?;
+    return Ok(content);
 }
 
 pub fn static_assets_emitter(
@@ -30,31 +32,34 @@ pub fn static_assets_emitter(
         return Ok(());
     }
 
-    let static_subdir_path = format!("{}/_static", ctx.build_args.output);
+    let static_subdir_path = ctx.build_args.output.join("_static")?;
+    static_subdir_path.create_dir()?;
 
     for item in StaticAssets::iter() {
-        let item_path = format!("{}/{}", static_subdir_path, item);
+        let item_path = static_subdir_path.join(item.to_string())?;
 
-        let item_contents = get_embedded_file(item.to_string())?;
+        let item_content = get_embedded_file(item.to_string())?;
 
-        let parent_folder = path::Path::new(&item_path).parent().ok_or_else(|| {
-            error::Error::NotFound("failed to get the parent folder for the given file".to_string())
-        })?;
-        let _ = fs::create_dir_all(parent_folder);
+        let parent_folder = item_path.parent();
+        parent_folder.create_dir_all()?;
 
-        fs::write(&item_path, item_contents)?;
+        let mut f = item_path.create_file()?;
+        f.write_all(item_content.as_bytes())?;
+
         if ctx.config.settings.logging == true {
-            tracing::info!("Successfully built {:#?}", item_path);
+            tracing::info!("Successfully built {:#?}", item_path.as_str());
         }
     }
 
-    let theme_css_path = format!("{}/theme.css", static_subdir_path);
+    let theme_css_path = static_subdir_path.join("theme.css")?;
 
-    let theme_css_contents: String = ctx.config.theme.to_css();
+    let theme_css_content: String = ctx.config.theme.to_css();
 
-    fs::write(&theme_css_path, theme_css_contents)?;
+    let mut f = theme_css_path.create_file()?;
+    f.write_all(theme_css_content.as_bytes())?;
+
     if ctx.config.settings.logging == true {
-        tracing::info!("Successfully built {:#?}", theme_css_path);
+        tracing::info!("Successfully built {:#?}", theme_css_path.as_str());
     }
 
     return Ok(());

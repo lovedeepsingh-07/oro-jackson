@@ -3,6 +3,7 @@ use serde;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Config {
+    pub title: String,
     pub settings: Settings,
     pub server: Server,
     pub plugins: Plugins,
@@ -27,7 +28,9 @@ pub struct Plugins {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Transformers {
+    pub frontmatter: plugins::transformers::frontmatter::FrontmatterTransformerOptions,
     pub markdown: plugins::transformers::markdown::MarkdownTransformerOptions,
+    pub sanitize: plugins::transformers::sanitize::SanitizeTransformerOptions,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]

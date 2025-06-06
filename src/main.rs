@@ -1,11 +1,9 @@
 use clap::Parser;
-use color_eyre::{
-    self,
-    eyre::{self},
-};
-use oro_jackson::{cli, config, context, error, processors, server};
+use color_eyre::{self, eyre};
+use oro_jackson::{cli, context, error, processors, server};
 use std::{fs, path};
 use tokio;
+use vfs;
 
 #[tokio::main]
 async fn main() -> eyre::Result<(), error::Error> {
@@ -19,28 +17,41 @@ async fn main() -> eyre::Result<(), error::Error> {
 
     match &cli_args.sub_commands {
         cli::SubCommands::Build(cli_data) => {
+            let output_path_fs: vfs::PhysicalFS = vfs::PhysicalFS::new(&cli_data.output);
+            let output_path_root: vfs::VfsPath = output_path_fs.into();
+
+            let content_path_fs: vfs::PhysicalFS = vfs::PhysicalFS::new(&cli_data.content);
+            let content_path_root: vfs::VfsPath = content_path_fs.into();
+
+            let config_path: path::PathBuf = path::PathBuf::from(&cli_data.config);
+
             // if the build directory already exists upon build, we must remove it
-            if path::Path::new(&cli_data.output).exists() {
-                fs::remove_dir_all(&cli_data.output)?;
+            if output_path_root.exists()? {
+                output_path_root.remove_dir_all()?;
             }
+            fs::create_dir_all(&cli_data.output)?;
 
-            let config_file_path_canon = fs::canonicalize(cli_data.config.clone())?;
-            let config_file_contents = fs::read_to_string(&config_file_path_canon)?;
-            let app_config: config::Config = toml::from_str(&config_file_contents)?;
+            let config_file_content: String = fs::read_to_string(config_path)?;
 
-            let mut ctx = context::Context::builder()
-                .app_config(app_config)
-                .build_args(cli_data.clone())
+            let build_args = context::BuildArgs::builder()
+                .content(content_path_root)
+                .output(output_path_root)
+                .serve(cli_data.serve)
+                .build();
+
+            let ctx = context::Context::builder()
+                .build_args(build_args)
+                .config_file_content(&config_file_content)
                 .build()?;
 
-            let parsed_files = processors::parse().ctx(&mut ctx).call()?;
+            let parsed_files = processors::parse().ctx(&ctx).call()?;
             processors::emit()
-                .ctx(&mut ctx)
+                .ctx(&ctx)
                 .parsed_files(&parsed_files)
                 .call()?;
 
             if cli_data.serve == true {
-                server::serve().ctx(&mut ctx).call().await?;
+                server::serve().ctx(&ctx).call().await?;
             }
         }
     };

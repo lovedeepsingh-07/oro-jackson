@@ -4,9 +4,10 @@ use color_eyre::eyre;
 pub mod emitters;
 pub mod transformers;
 
-pub type Transformer = fn(
-    content_files: &mut Vec<oj_file::OjFile>,
-) -> eyre::Result<&mut Vec<oj_file::OjFile>, error::Error>;
+pub type Transformer = for<'a> fn(
+    ctx: &'a context::Context,
+    content_files: &'a mut Vec<oj_file::OjFile>,
+) -> eyre::Result<&'a mut Vec<oj_file::OjFile>, error::Error>;
 
 pub type Emitter = fn(
     ctx: &context::Context,

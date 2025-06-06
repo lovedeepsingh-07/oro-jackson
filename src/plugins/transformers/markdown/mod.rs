@@ -1,14 +1,20 @@
-use crate::{error, oj_file};
+use crate::{context, error, oj_file};
 use color_eyre::eyre;
+
+#[cfg(test)]
+pub mod tests;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct MarkdownTransformerOptions {
     pub enable: bool,
 }
 
-pub fn markdown_transformer(
-    content_files: &mut Vec<oj_file::OjFile>,
-) -> eyre::Result<&mut Vec<oj_file::OjFile>, error::Error> {
+pub fn markdown_transformer<'a>(
+    ctx: &'a context::Context,
+    content_files: &'a mut Vec<oj_file::OjFile>,
+) -> eyre::Result<&'a mut Vec<oj_file::OjFile>, error::Error> {
+    let _ = ctx;
+
     let mut options = pulldown_cmark::Options::empty();
     options.insert(pulldown_cmark::Options::ENABLE_MATH);
     options.insert(pulldown_cmark::Options::ENABLE_YAML_STYLE_METADATA_BLOCKS);
@@ -35,7 +41,7 @@ pub fn markdown_transformer(
             // this parser thing seems to be an iteratable representation of the Markdown AST
             let parser = pulldown_cmark::Parser::new_ext(&curr_file.content, options);
             pulldown_cmark::html::push_html(&mut output_html, parser);
-            curr_file.content = output_html;
+            curr_file.content = output_html.clone();
         }
     }
 

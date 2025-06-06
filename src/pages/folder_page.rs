@@ -1,5 +1,4 @@
-use crate::{plugins, web::pages::BaseHTML};
-use ammonia;
+use crate::{frontmatter, pages::BaseHTML, plugins};
 use leptos::prelude::*;
 
 #[component]
@@ -7,8 +6,8 @@ pub fn FolderPage(
     content: String,
     subfiles: Vec<plugins::emitters::folder_page::FolderPageChildLink>,
     show_folder_page_children: bool,
+    frontmatter: frontmatter::Frontmatter,
 ) -> impl IntoView {
-    let cleaned_content = ammonia::clean(&content);
     let sub_files = match show_folder_page_children {
         true => {
             let children_files = subfiles
@@ -42,9 +41,9 @@ pub fn FolderPage(
         false => view! {}.into_any(),
     };
     view! {
-        <BaseHTML>
+        <BaseHTML frontmatter>
             <div class="mb-[100px] px-4">
-                <div class="prose dark:prose-invert mx-auto mt-[64px] max-w-5xl" inner_html={cleaned_content}>
+                <div class="prose dark:prose-invert mx-auto max-w-5xl" inner_html={content}>
                 </div>
                 {sub_files}
                 <hr class="mx-auto mt-[25px] mb-[10px] w-full max-w-5xl opacity-[15%]" />
