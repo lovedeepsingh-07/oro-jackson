@@ -17,47 +17,6 @@ pub struct FolderPageChildLink {
     pub href: String,
 }
 
-#[bon::builder]
-pub fn prepare_folder_files(
-    ctx: &context::Context,
-    content_files: &Vec<oj_file::OjFile>,
-) -> eyre::Result<Vec<oj_file::OjFile>> {
-    let mut folder_files: Vec<oj_file::OjFile> = Vec::new();
-
-    for curr_file in content_files {
-        let curr_file_parents = get_parent_folders()
-            .curr_file_input_path(curr_file.input_path.clone())
-            .content_base_path(ctx.build_args.content.clone())
-            .call()?;
-        for curr_parent_path in curr_file_parents {
-            let curr_index_path = curr_parent_path.join("index.md")?;
-
-            if folder_files.iter().any(|f| f.input_path == curr_index_path) {
-                continue;
-            }
-            if let Some(folder_file) = content_files
-                .iter()
-                .find(|cf| cf.input_path == curr_index_path)
-            {
-                folder_files.push(folder_file.clone());
-            } else {
-                let index_file = oj_file::OjFile {
-                    frontmatter: frontmatter::Frontmatter::default(),
-                    input_path: curr_index_path,
-                    output_path: ctx
-                        .build_args
-                        .output
-                        .join(curr_parent_path.as_str())?
-                        .join("index.html")?,
-                    content: String::new(),
-                };
-                folder_files.push(index_file);
-            }
-        }
-    }
-    return Ok(folder_files);
-}
-
 // TODO: this feels incredibly inefficient
 pub fn folder_page_emitter(
     ctx: &context::Context,
@@ -99,6 +58,47 @@ pub fn folder_page_emitter(
         }
     }
     return Ok(());
+}
+
+#[bon::builder]
+pub fn prepare_folder_files(
+    ctx: &context::Context,
+    content_files: &Vec<oj_file::OjFile>,
+) -> eyre::Result<Vec<oj_file::OjFile>> {
+    let mut folder_files: Vec<oj_file::OjFile> = Vec::new();
+
+    for curr_file in content_files {
+        let curr_file_parents = get_parent_folders()
+            .curr_file_input_path(curr_file.input_path.clone())
+            .content_base_path(ctx.build_args.content.clone())
+            .call()?;
+        for curr_parent_path in curr_file_parents {
+            let curr_index_path = curr_parent_path.join("index.md")?;
+
+            if folder_files.iter().any(|f| f.input_path == curr_index_path) {
+                continue;
+            }
+            if let Some(folder_file) = content_files
+                .iter()
+                .find(|cf| cf.input_path == curr_index_path)
+            {
+                folder_files.push(folder_file.clone());
+            } else {
+                let index_file = oj_file::OjFile {
+                    frontmatter: frontmatter::Frontmatter::default(),
+                    input_path: curr_index_path,
+                    output_path: ctx
+                        .build_args
+                        .output
+                        .join(curr_parent_path.as_str())?
+                        .join("index.html")?,
+                    content: String::new(),
+                };
+                folder_files.push(index_file);
+            }
+        }
+    }
+    return Ok(folder_files);
 }
 
 #[bon::builder]

@@ -6,10 +6,22 @@ pub mod tests;
 
 #[bon::builder]
 pub fn prepare_content(ctx: &context::Context) -> eyre::Result<Vec<oj_file::OjFile>, error::Error> {
-    // TODO: reimplement live-reloading using `vfs`
     if ctx.is_rebuild == true {
-        tracing::warn!("WARN: not yet working");
-        return Ok(Vec::new());
+        if ctx.build_path.is_file()? {
+            return Ok(vec![oj_file::OjFile {
+                frontmatter: frontmatter::Frontmatter::default(),
+                input_path: ctx.build_path.clone(),
+                output_path: ctx
+                    .build_args
+                    .output
+                    .join(ctx.build_path.as_str().replace(".md", ".html"))?,
+                content: ctx.build_path.read_to_string()?,
+            }]);
+        }
+        if ctx.build_path.is_dir()? {
+            return Ok(prepare_folder_content().ctx(ctx).call()?);
+        }
+        return Ok(vec![]);
     } else {
         return Ok(prepare_folder_content().ctx(ctx).call()?);
     }

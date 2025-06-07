@@ -1,4 +1,4 @@
-use crate::{config, error, plugins};
+use crate::{cli, config, error, plugins};
 use bon;
 use color_eyre::eyre;
 use toml;
@@ -9,6 +9,7 @@ pub struct BuildArgs {
     pub content: vfs::VfsPath,
     pub output: vfs::VfsPath,
     pub serve: bool,
+    pub cli_args: cli::Build,
 }
 
 #[derive(Debug, Clone)]

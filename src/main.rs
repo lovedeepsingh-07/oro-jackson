@@ -37,6 +37,7 @@ async fn main() -> eyre::Result<(), error::Error> {
                 .content(content_path_root)
                 .output(output_path_root)
                 .serve(cli_data.serve)
+                .cli_args(cli_data.clone())
                 .build();
 
             let ctx = context::Context::builder()
