@@ -1,4 +1,4 @@
-use crate::{context, error, processors, utils};
+use crate::{context, error, helpers, processors, utils};
 use axum;
 use bon;
 use color_eyre::eyre::{self, WrapErr};
@@ -74,12 +74,12 @@ pub async fn serve(ctx: &context::Context) -> eyre::Result<(), error::Error> {
         )
         .wrap_err("failed to watch for changes using hotwatch")?;
 
-    let server_port = ctx.config.server.port.clone();
+    let server_port = ctx.config.port.clone();
     let listener = tokio::net::TcpListener::bind(ADDRESS.to_string() + ":" + &server_port)
         .await
         .wrap_err("failed to bind TCP Listener to address")?;
 
-    if ctx.config.settings.logging == true {
+    if ctx.config.logging == true {
         tracing::info!("running on {}:{}", ADDRESS, server_port);
     }
 
@@ -129,6 +129,10 @@ pub fn handle_watch(
             {
                 return Ok(());
             }
+
+            ctx.file_tree = helpers::file_tree::map_folder()
+                .input_path(ctx.build_args.content.clone())
+                .call()?;
 
             let parsed_files = processors::parse().ctx(&ctx).call()?;
             processors::emit()

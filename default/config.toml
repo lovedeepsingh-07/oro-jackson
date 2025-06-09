@@ -1,0 +1,14 @@
+title = "oro-jackson"
+logging = true
+port = "8080"
+file_explorer = true
+
+[plugins.transformers]
+markdown = { enable = true }
+sanitize = { enable = true }
+frontmatter = { enable = true }
+
+[plugins.emitters]
+static_assets = { enable = true }
+file_page = { enable = true }
+folder_page = { enable = true, show_folder_page_children = true }

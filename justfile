@@ -2,10 +2,10 @@ default:
 	just -l
 
 serve:
-	cargo watch -x "run build --serve --config ./config.toml --content ../bookshelf/content --output ./build" -i ./_static
+	cargo watch -x "run build --serve --config ./default/config.toml --theme ./default/theme.css --content ../bookshelf/content --output ./build" -i ./_static
 
 build:
-    cargo run build --config ./config.toml --content ../bookshelf/content --output ./build
+    cargo run build --config ./default/config.toml --theme ./default/theme.css --content ../bookshelf/content --output ./build
 
 test:
     cargo test -- --nocapture

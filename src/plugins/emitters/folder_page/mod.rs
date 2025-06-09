@@ -12,7 +12,7 @@ pub struct FolderPageEmitterOptions {
 }
 
 #[derive(Debug, Clone, bon::Builder)]
-pub struct FolderPageChildLink {
+pub struct FolderPageChild {
     pub name: String,
     pub href: String,
 }
@@ -30,7 +30,7 @@ pub fn folder_page_emitter(
     for index_file in folder_files {
         let parent_folder = index_file.input_path.parent();
 
-        let folder_children = get_children()
+        let folder_page_children = get_children()
             .index_file_parent_folder(parent_folder)
             .call()?;
 
@@ -39,13 +39,16 @@ pub fn folder_page_emitter(
             pages::folder_page::FolderPage(pages::folder_page::FolderPageProps {
                 frontmatter: folder_page_frontmatter,
                 content: index_file.content.clone(),
-                subfiles: folder_children,
+                folder_page_children,
                 show_folder_page_children: ctx
                     .config
                     .plugins
                     .emitters
                     .folder_page
                     .show_folder_page_children,
+                show_file_explorer: ctx.config.file_explorer,
+                project_title: ctx.config.title.clone(),
+                file_tree: ctx.file_tree.clone(),
             })
             .to_html();
 
@@ -53,7 +56,7 @@ pub fn folder_page_emitter(
         let mut f = index_file.output_path.create_file()?;
         f.write_all(folder_page_html.as_bytes())?;
 
-        if ctx.config.settings.logging == true {
+        if ctx.config.logging == true {
             tracing::info!("Successfully built {:#?}", index_file.output_path.as_str());
         }
     }
@@ -78,6 +81,14 @@ pub fn prepare_folder_files(
             if folder_files.iter().any(|f| f.input_path == curr_index_path) {
                 continue;
             }
+
+            if curr_parent_path.is_root()
+                && ctx.build_args.output.join("index.html")?.exists()?
+                && ctx.build_args.content.join("index.md")?.exists()?
+            {
+                continue;
+            }
+
             if let Some(folder_file) = content_files
                 .iter()
                 .find(|cf| cf.input_path == curr_index_path)
@@ -118,13 +129,13 @@ pub fn get_parent_folders(
 }
 
 #[bon::builder]
-pub fn get_children(
-    index_file_parent_folder: vfs::VfsPath,
-) -> eyre::Result<Vec<FolderPageChildLink>> {
-    let mut children: Vec<FolderPageChildLink> = Vec::new();
+pub fn get_children(index_file_parent_folder: vfs::VfsPath) -> eyre::Result<Vec<FolderPageChild>> {
+    let mut child_folders: Vec<FolderPageChild> = Vec::new();
+    let mut child_files: Vec<FolderPageChild> = Vec::new();
 
     if !index_file_parent_folder.exists()? {
-        return Ok(children);
+        child_folders.extend(child_files);
+        return Ok(child_folders);
     }
 
     for child_entry in index_file_parent_folder.read_dir()? {
@@ -135,47 +146,40 @@ pub fn get_children(
                 && (child_entry_file_name == "index.md"
                     || !utils::is_markdown_file().file_path(&child_entry).call()))
             || utils::is_hidden_file().file_path(&child_entry).call()
+            || (child_entry.is_dir()? && utils::is_empty_dir().dir_path(&child_entry).call())
         {
             continue;
         }
 
-        if child_entry.is_dir()? {
-            match child_entry.read_dir() {
-                Ok(dir_iter) => {
-                    // Collect all entries, filtering out errors
-                    let entries: Vec<_> = dir_iter.collect();
-
-                    // Skip if the directory is empty or only contains a `.keep` file
-                    if entries.is_empty()
-                        || (entries.len() == 1 && entries[0].filename() == ".keep")
-                    {
-                        continue;
-                    }
-                }
-                Err(e) => {
-                    tracing::warn!(
-                        "unable to read directory {:?}, error: {:#?}",
-                        child_entry,
-                        e.to_string()
-                    );
-                    continue;
-                }
-            }
-        };
-
         let child_entry_path_string = child_entry.as_str().replace(".md", "");
 
-        children.push(
-            FolderPageChildLink::builder()
-                .name(
-                    child_entry_path_string
-                        .replace(index_file_parent_folder.as_str(), "")
-                        .replace("/", ""),
-                )
-                .href(child_entry_path_string)
-                .build(),
-        );
+        if child_entry.is_dir()? {
+            child_folders.push(
+                FolderPageChild::builder()
+                    .name(
+                        child_entry_path_string
+                            .replace(index_file_parent_folder.as_str(), "")
+                            .replace("/", ""),
+                    )
+                    .href(child_entry_path_string.clone())
+                    .build(),
+            );
+        }
+
+        if child_entry.is_file()? {
+            child_files.push(
+                FolderPageChild::builder()
+                    .name(
+                        child_entry_path_string
+                            .replace(index_file_parent_folder.as_str(), "")
+                            .replace("/", ""),
+                    )
+                    .href(child_entry_path_string)
+                    .build(),
+            );
+        }
     }
 
-    return Ok(children);
+    child_folders.extend(child_files);
+    return Ok(child_folders);
 }

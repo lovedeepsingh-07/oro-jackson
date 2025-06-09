@@ -13,7 +13,7 @@ pub struct StaticAssetsEmitterOptions {
 #[folder = "_static/"]
 pub struct StaticAssets;
 
-pub fn get_embedded_file(filepath: String) -> eyre::Result<String, error::Error> {
+pub fn get_embedded_static_file(filepath: String) -> eyre::Result<String, error::Error> {
     let file = StaticAssets::get(filepath.as_str()).ok_or_else(|| {
         error::Error::NotFound("no such embedded static file or directory".to_string())
     })?;
@@ -38,7 +38,7 @@ pub fn static_assets_emitter(
     for item in StaticAssets::iter() {
         let item_path = static_subdir_path.join(item.to_string())?;
 
-        let item_content = get_embedded_file(item.to_string())?;
+        let item_content = get_embedded_static_file(item.to_string())?;
 
         let parent_folder = item_path.parent();
         parent_folder.create_dir_all()?;
@@ -46,19 +46,16 @@ pub fn static_assets_emitter(
         let mut f = item_path.create_file()?;
         f.write_all(item_content.as_bytes())?;
 
-        if ctx.config.settings.logging == true {
+        if ctx.config.logging == true {
             tracing::info!("Successfully built {:#?}", item_path.as_str());
         }
     }
 
     let theme_css_path = static_subdir_path.join("theme.css")?;
-
-    let theme_css_content: String = ctx.config.theme.to_css();
-
     let mut f = theme_css_path.create_file()?;
-    f.write_all(theme_css_content.as_bytes())?;
+    f.write_all(ctx.theme.as_bytes())?;
 
-    if ctx.config.settings.logging == true {
+    if ctx.config.logging == true {
         tracing::info!("Successfully built {:#?}", theme_css_path.as_str());
     }
 

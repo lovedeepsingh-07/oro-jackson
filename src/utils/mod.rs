@@ -72,3 +72,22 @@ pub fn is_markdown_file(file_path: &vfs::VfsPath) -> bool {
         }
     } == "md";
 }
+
+#[bon::builder]
+pub fn is_empty_dir(dir_path: &vfs::VfsPath) -> bool {
+    match dir_path.read_dir() {
+        Ok(dir_iter) => {
+            // Collect all entries, filtering out errors
+            let entries: Vec<_> = dir_iter.collect();
+
+            // Skip if the directory is empty or only contains a `.keep` file
+            if entries.is_empty() || (entries.len() == 1 && entries[0].filename() == ".keep") {
+                return true;
+            }
+        }
+        Err(_) => {
+            return true;
+        }
+    }
+    return false;
+}
