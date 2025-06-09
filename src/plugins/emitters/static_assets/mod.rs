@@ -1,4 +1,4 @@
-use crate::{context, error, oj_file};
+use crate::{context, error, helpers, oj_file};
 use color_eyre::eyre;
 
 #[cfg(test)]
@@ -27,13 +27,30 @@ pub fn static_assets_emitter(
 ) -> eyre::Result<(), error::Error> {
     let _ = content_files;
 
-    // if this is a rebuild run, we don't need to write static assets again
+    let static_subdir_path = ctx.build_args.output.join("_static")?;
+    if !static_subdir_path.exists()? {
+        static_subdir_path.create_dir()?;
+    }
+
+    // building file tree json file
+    let file_tree_json_path = static_subdir_path.join("_file_tree.json")?;
+    if file_tree_json_path.exists()? {
+        file_tree_json_path.remove_file()?;
+    }
+    let file_tree = helpers::file_tree::map_folder()
+        .input_path(ctx.build_args.content.clone())
+        .call()?;
+    let mut f = file_tree_json_path.create_file()?;
+    f.write_all(serde_json::to_string(&file_tree)?.as_bytes())?;
+
+    if ctx.config.logging == true {
+        tracing::info!("Successfully built {:#?}", file_tree_json_path.as_str());
+    }
+    // if this is a rebuild run, we don't need to write static assets again we just need to rebuild
+    // the file tree
     if ctx.is_rebuild == true {
         return Ok(());
     }
-
-    let static_subdir_path = ctx.build_args.output.join("_static")?;
-    static_subdir_path.create_dir()?;
 
     for item in StaticAssets::iter() {
         let item_path = static_subdir_path.join(item.to_string())?;

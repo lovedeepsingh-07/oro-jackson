@@ -2,6 +2,7 @@ use axum::{self, response::IntoResponse};
 use color_eyre::{self, eyre};
 use hotwatch;
 use regex;
+use serde_json;
 use serde_yaml;
 use thiserror;
 use toml;
@@ -33,6 +34,9 @@ pub enum Error {
 
     #[error(transparent)]
     YamlError(#[from] serde_yaml::Error),
+
+    #[error(transparent)]
+    JsonError(#[from] serde_json::Error),
 
     #[error("failed to extract frontmatter, {0}")]
     FrontmatterError(String),

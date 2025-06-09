@@ -48,7 +48,6 @@ pub fn folder_page_emitter(
                     .show_folder_page_children,
                 show_file_explorer: ctx.config.file_explorer,
                 project_title: ctx.config.title.clone(),
-                file_tree: ctx.file_tree.clone(),
             })
             .to_html();
 

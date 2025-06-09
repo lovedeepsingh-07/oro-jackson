@@ -1,6 +1,6 @@
 use crate::{
     components::{FileExplorer, Navbar},
-    frontmatter, helpers,
+    frontmatter,
 };
 use leptos::prelude::*;
 
@@ -13,12 +13,11 @@ pub fn BaseHTML(
     frontmatter: frontmatter::Frontmatter,
     show_file_explorer: bool,
     project_title: String,
-    file_tree: Vec<helpers::file_tree::TreeNode>,
 ) -> impl IntoView {
     let page_title = frontmatter.title.clone();
     let layout_body = match show_file_explorer {
         true => view! {
-            <FileExplorer project_title file_tree>
+            <FileExplorer project_title>
                 <div class="overflow-x-auto">
                     <div class="mt-[64px] mb-[24px] px-4">
                         <div class="mx-auto max-w-5xl">
@@ -54,7 +53,7 @@ pub fn BaseHTML(
 
                 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" integrity="sha384-5TcZemv2l/9On385z///+d7MSYlvIEw9FuZTIdZ14vJLqWphw7e7ZPuOiCHJcFCP" crossorigin="anonymous"/>
                 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js" integrity="sha384-cMkvdD8LoxVzGF/RPUKAcvmm49FQ0oxwDF3BGKtDXcEc+T1b2N+teh/OJfpU0jr6" crossorigin="anonymous"></script>
-                <script src="/_static/scripts/katex.render.js"></script> // custom katex render script
+                <script src="/_static/scripts/katex.render.js"></script>
 
                 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/default.min.css" />
                 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
@@ -62,6 +61,7 @@ pub fn BaseHTML(
                 <script src="/_static/scripts/highlightjs.render.js"></script>
 
                 <script type="module" src="/_static/scripts/mermaid.render.js"></script>
+                <script src="/_static/scripts/file_tree.render.js"></script>
             </head>
             <body>
                 <Navbar show_file_explorer/>

@@ -1,4 +1,4 @@
-use crate::{cli, config, error, helpers, plugins};
+use crate::{cli, config, error, plugins};
 use bon;
 use color_eyre::eyre;
 use toml;
@@ -21,7 +21,6 @@ pub struct Context {
     pub build_path: vfs::VfsPath,
     pub transformer_plugins: Vec<plugins::Transformer>,
     pub emitter_plugins: Vec<plugins::Emitter>,
-    pub file_tree: Vec<helpers::file_tree::TreeNode>,
 }
 
 #[bon::bon]
@@ -34,10 +33,6 @@ impl Context {
     ) -> eyre::Result<Self, error::Error> {
         let parsed_app_config: config::Config = toml::from_str(config_file_content)?;
 
-        let file_tree: Vec<helpers::file_tree::TreeNode> = helpers::file_tree::map_folder()
-            .input_path(build_args.content.clone())
-            .call()?;
-
         let mut ctx = Context {
             config: parsed_app_config.clone(),
             theme: theme_file_content.to_string(),
@@ -46,7 +41,6 @@ impl Context {
             build_args,
             transformer_plugins: Vec::new(),
             emitter_plugins: Vec::new(),
-            file_tree,
         };
 
         // transformers

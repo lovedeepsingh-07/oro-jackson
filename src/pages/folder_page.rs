@@ -1,4 +1,4 @@
-use crate::{components::FolderPageChildrenList, frontmatter, helpers, pages::BaseHTML, plugins};
+use crate::{components::FolderPageChildrenList, frontmatter, pages::BaseHTML, plugins};
 use leptos::prelude::*;
 
 #[component]
@@ -9,10 +9,9 @@ pub fn FolderPage(
     show_file_explorer: bool,
     frontmatter: frontmatter::Frontmatter,
     project_title: String,
-    file_tree: Vec<helpers::file_tree::TreeNode>,
 ) -> impl IntoView {
     view! {
-        <BaseHTML frontmatter show_file_explorer project_title file_tree>
+        <BaseHTML frontmatter show_file_explorer project_title>
             <div class="mb-[100px] px-4">
                 <div class="prose dark:prose-invert mx-auto max-w-5xl" inner_html={content}>
                 </div>

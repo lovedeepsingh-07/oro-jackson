@@ -1,4 +1,4 @@
-use crate::{context, error, helpers, processors, utils};
+use crate::{context, error, processors, utils};
 use axum;
 use bon;
 use color_eyre::eyre::{self, WrapErr};
@@ -129,10 +129,6 @@ pub fn handle_watch(
             {
                 return Ok(());
             }
-
-            ctx.file_tree = helpers::file_tree::map_folder()
-                .input_path(ctx.build_args.content.clone())
-                .call()?;
 
             let parsed_files = processors::parse().ctx(&ctx).call()?;
             processors::emit()

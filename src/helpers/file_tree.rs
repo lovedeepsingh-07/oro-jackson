@@ -1,20 +1,21 @@
 use crate::{error, utils};
 use bon;
 use color_eyre::eyre;
+use serde;
 use vfs;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum TreeNode {
     File(TreeNodeFile),
     Folder(TreeNodeFolder),
 }
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct TreeNodeFile {
     pub name: String,
     pub href: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct TreeNodeFolder {
     pub name: String,
     pub href: String,

@@ -28,7 +28,6 @@ pub fn file_page_emitter(
             show_file_explorer: ctx.config.file_explorer,
             frontmatter: file_page_frontmatter,
             project_title: ctx.config.title.clone(),
-            file_tree: ctx.file_tree.clone(),
         })
         .to_html();
 
