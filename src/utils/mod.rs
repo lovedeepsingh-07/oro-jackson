@@ -6,10 +6,22 @@ pub mod tests;
 
 #[bon::builder]
 pub fn prepare_content(ctx: &context::Context) -> eyre::Result<Vec<oj_file::OjFile>, error::Error> {
-    // TODO: reimplement live-reloading using `vfs`
     if ctx.is_rebuild == true {
-        tracing::warn!("WARN: not yet working");
-        return Ok(Vec::new());
+        if ctx.build_path.is_file()? {
+            return Ok(vec![oj_file::OjFile {
+                frontmatter: frontmatter::Frontmatter::default(),
+                input_path: ctx.build_path.clone(),
+                output_path: ctx
+                    .build_args
+                    .output
+                    .join(ctx.build_path.as_str().replace(".md", ".html"))?,
+                content: ctx.build_path.read_to_string()?,
+            }]);
+        }
+        if ctx.build_path.is_dir()? {
+            return Ok(prepare_folder_content().ctx(ctx).call()?);
+        }
+        return Ok(vec![]);
     } else {
         return Ok(prepare_folder_content().ctx(ctx).call()?);
     }
@@ -59,4 +71,23 @@ pub fn is_markdown_file(file_path: &vfs::VfsPath) -> bool {
             return false;
         }
     } == "md";
+}
+
+#[bon::builder]
+pub fn is_empty_dir(dir_path: &vfs::VfsPath) -> bool {
+    match dir_path.read_dir() {
+        Ok(dir_iter) => {
+            // Collect all entries, filtering out errors
+            let entries: Vec<_> = dir_iter.collect();
+
+            // Skip if the directory is empty or only contains a `.keep` file
+            if entries.is_empty() || (entries.len() == 1 && entries[0].filename() == ".keep") {
+                return true;
+            }
+        }
+        Err(_) => {
+            return true;
+        }
+    }
+    return false;
 }

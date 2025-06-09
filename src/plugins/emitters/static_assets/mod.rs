@@ -1,4 +1,4 @@
-use crate::{context, error, oj_file};
+use crate::{context, error, helpers, oj_file};
 use color_eyre::eyre;
 
 #[cfg(test)]
@@ -13,7 +13,7 @@ pub struct StaticAssetsEmitterOptions {
 #[folder = "_static/"]
 pub struct StaticAssets;
 
-pub fn get_embedded_file(filepath: String) -> eyre::Result<String, error::Error> {
+pub fn get_embedded_static_file(filepath: String) -> eyre::Result<String, error::Error> {
     let file = StaticAssets::get(filepath.as_str()).ok_or_else(|| {
         error::Error::NotFound("no such embedded static file or directory".to_string())
     })?;
@@ -27,18 +27,35 @@ pub fn static_assets_emitter(
 ) -> eyre::Result<(), error::Error> {
     let _ = content_files;
 
-    // if this is a rebuild run, we don't need to write static assets again
+    let static_subdir_path = ctx.build_args.output.join("_static")?;
+    if !static_subdir_path.exists()? {
+        static_subdir_path.create_dir()?;
+    }
+
+    // building file tree json file
+    let file_tree_json_path = static_subdir_path.join("_file_tree.json")?;
+    if file_tree_json_path.exists()? {
+        file_tree_json_path.remove_file()?;
+    }
+    let file_tree = helpers::file_tree::map_folder()
+        .input_path(ctx.build_args.content.clone())
+        .call()?;
+    let mut f = file_tree_json_path.create_file()?;
+    f.write_all(serde_json::to_string(&file_tree)?.as_bytes())?;
+
+    if ctx.config.logging == true {
+        tracing::info!("Successfully built {:#?}", file_tree_json_path.as_str());
+    }
+    // if this is a rebuild run, we don't need to write static assets again we just need to rebuild
+    // the file tree
     if ctx.is_rebuild == true {
         return Ok(());
     }
 
-    let static_subdir_path = ctx.build_args.output.join("_static")?;
-    static_subdir_path.create_dir()?;
-
     for item in StaticAssets::iter() {
         let item_path = static_subdir_path.join(item.to_string())?;
 
-        let item_content = get_embedded_file(item.to_string())?;
+        let item_content = get_embedded_static_file(item.to_string())?;
 
         let parent_folder = item_path.parent();
         parent_folder.create_dir_all()?;
@@ -46,19 +63,16 @@ pub fn static_assets_emitter(
         let mut f = item_path.create_file()?;
         f.write_all(item_content.as_bytes())?;
 
-        if ctx.config.settings.logging == true {
+        if ctx.config.logging == true {
             tracing::info!("Successfully built {:#?}", item_path.as_str());
         }
     }
 
     let theme_css_path = static_subdir_path.join("theme.css")?;
-
-    let theme_css_content: String = ctx.config.theme.to_css();
-
     let mut f = theme_css_path.create_file()?;
-    f.write_all(theme_css_content.as_bytes())?;
+    f.write_all(ctx.theme.as_bytes())?;
 
-    if ctx.config.settings.logging == true {
+    if ctx.config.logging == true {
         tracing::info!("Successfully built {:#?}", theme_css_path.as_str());
     }
 

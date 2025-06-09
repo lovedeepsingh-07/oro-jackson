@@ -1,4 +1,4 @@
-use crate::{config, error, plugins};
+use crate::{cli, config, error, plugins};
 use bon;
 use color_eyre::eyre;
 use toml;
@@ -9,11 +9,13 @@ pub struct BuildArgs {
     pub content: vfs::VfsPath,
     pub output: vfs::VfsPath,
     pub serve: bool,
+    pub cli_args: cli::Build,
 }
 
 #[derive(Debug, Clone)]
 pub struct Context {
     pub config: config::Config,
+    pub theme: String,
     pub build_args: BuildArgs,
     pub is_rebuild: bool,
     pub build_path: vfs::VfsPath,
@@ -27,11 +29,13 @@ impl Context {
     pub fn new(
         build_args: BuildArgs,
         config_file_content: &str,
+        theme_file_content: &str,
     ) -> eyre::Result<Self, error::Error> {
         let parsed_app_config: config::Config = toml::from_str(config_file_content)?;
 
         let mut ctx = Context {
-            config: parsed_app_config,
+            config: parsed_app_config.clone(),
+            theme: theme_file_content.to_string(),
             build_path: build_args.content.clone(),
             is_rebuild: false,
             build_args,

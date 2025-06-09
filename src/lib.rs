@@ -1,8 +1,10 @@
 pub mod cli;
+pub mod components;
 pub mod config;
 pub mod context;
 pub mod error;
 pub mod frontmatter;
+pub mod helpers;
 pub mod oj_file;
 pub mod pages;
 pub mod plugins;

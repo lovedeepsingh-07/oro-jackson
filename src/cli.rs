@@ -10,6 +10,7 @@ pub struct CLIArgs {
 
 #[derive(Subcommand, Debug, Clone)]
 pub enum SubCommands {
+    Create,
     Build(Build),
 }
 
@@ -18,6 +19,8 @@ pub enum SubCommands {
 pub struct Build {
     #[arg(long, help = "path location of your config.toml file")]
     pub config: String,
+    #[arg(long, help = "path location of your theme.css file")]
+    pub theme: String,
     #[arg(long, help = "path location of your content folder")]
     pub content: String,
     #[arg(long, help = "path location of output folder")]

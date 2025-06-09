@@ -22,7 +22,8 @@ impl Default for Frontmatter {
 impl Frontmatter {
     pub fn new(ctx: &context::Context, curr_file: &oj_file::OjFile) -> Self {
         let mut curr_frontmatter: Frontmatter = Frontmatter::default();
-        curr_frontmatter.title = curr_frontmatter
+        curr_frontmatter.title = curr_file
+            .frontmatter
             .source
             .get_title()
             .ctx(ctx)
