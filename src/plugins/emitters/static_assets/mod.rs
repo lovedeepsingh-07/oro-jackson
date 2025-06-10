@@ -1,4 +1,4 @@
-use crate::{context, error, helpers, oj_file};
+use crate::{context, error, oj_file, utils};
 use color_eyre::eyre;
 
 #[cfg(test)]
@@ -37,7 +37,7 @@ pub fn static_assets_emitter(
     if file_tree_json_path.exists()? {
         file_tree_json_path.remove_file()?;
     }
-    let file_tree = helpers::file_tree::map_folder()
+    let file_tree = utils::file_tree::map_folder()
         .input_path(ctx.build_args.content.clone())
         .call()?;
     let mut f = file_tree_json_path.create_file()?;

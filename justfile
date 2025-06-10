@@ -4,6 +4,10 @@ default:
 serve:
 	cargo watch -x "run build --serve --config ./default/config.toml --theme ./default/theme.css --content ../bookshelf/content --output ./build" -i ./_static
 
+docs:
+	cargo build --release
+	./target/release/oro-jackson build --serve --config ./default/config.toml --theme ./default/theme.css --content ./docs --output ./build
+
 build:
     cargo run build --config ./default/config.toml --theme ./default/theme.css --content ../bookshelf/content --output ./build
 
