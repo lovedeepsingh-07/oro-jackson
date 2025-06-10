@@ -46,6 +46,8 @@ async fn main() -> eyre::Result<(), error::Error> {
 
                 tracing::info!("Successfully created {:#?}", item_path.as_str());
             }
+            // create `content` folder
+            project_root.join("content")?.create_dir()?;
         }
         cli::SubCommands::Build(cli_data) => {
             let output_path_fs: vfs::PhysicalFS = vfs::PhysicalFS::new(&cli_data.output);

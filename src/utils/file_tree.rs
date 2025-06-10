@@ -37,7 +37,7 @@ pub fn map_folder(input_path: vfs::VfsPath) -> eyre::Result<Vec<TreeNode>, error
             && entry.filename() != "index.md"
         {
             output_files.push(TreeNode::File(TreeNodeFile {
-                name: entry.filename(),
+                name: entry.filename().replace(".md", ""),
                 href: entry.as_str().to_string().replace(".md", ""),
             }))
         }

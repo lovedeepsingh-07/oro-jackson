@@ -25,6 +25,6 @@ pub struct Build {
     pub content: String,
     #[arg(long, help = "path location of output folder")]
     pub output: String,
-    #[arg(long, help = "serve the content")]
+    #[arg(long, help = "serve the content and watch for changes")]
     pub serve: bool,
 }

@@ -1,56 +1,5 @@
 use leptos::prelude::*;
 
-// #[component]
-// pub fn TreeFile(name: String, href: String) -> impl IntoView {
-//     view! {
-//         <li>
-//             <a href={href}>
-//                 {name}
-//             </a>
-//         </li>
-//     }
-// }
-//
-// #[component]
-// pub fn TreeFolder(name: String, href: String, children: Children) -> impl IntoView {
-//     view! {
-//         <li>
-//             <details>
-//                 <summary><a href={href}>{name}</a></summary>
-//                 <ul>
-//                     {children()}
-//                 </ul>
-//             </details>
-//         </li>
-//     }
-// }
-//
-// pub fn render_file_tree(file_tree_input: Vec<helpers::file_tree::TreeNode>) -> Vec<AnyView> {
-//     let mut res: Vec<AnyView> = Vec::new();
-//     for tree_node in file_tree_input {
-//         match tree_node {
-//             helpers::file_tree::TreeNode::File(curr_file) => res.push(
-//                 view! {
-//                     <TreeFile name={curr_file.name} href={curr_file.href}/>
-//                 }
-//                 .into_any(),
-//             ),
-//             helpers::file_tree::TreeNode::Folder(curr_folder) => {
-//                 let tree_children = render_file_tree(curr_folder.children);
-//                 res.push(
-//                     view! {
-//                         <TreeFolder name={curr_folder.name} href={curr_folder.href}>
-//                             {tree_children}
-//                         </TreeFolder>
-//                     }
-//                     .into_any(),
-//                 );
-//             }
-//         }
-//     }
-//     return res.collect_view();
-// }
-
 #[component]
 pub fn FileExplorer(children: Children, project_title: String) -> impl IntoView {
     view! {

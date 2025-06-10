@@ -1,6 +1,7 @@
 use crate::{context, error, frontmatter, oj_file};
 use color_eyre::eyre;
 
+pub mod file_tree;
 #[cfg(test)]
 pub mod tests;
 
