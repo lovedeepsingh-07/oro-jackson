@@ -5,9 +5,9 @@ on:
 env:
   PROJECT_NAME: oro-jackson
   OUTPUT_DIRECTORY: build
-  BUILD_COMMAND: nix run . -- build --config ./default/config.toml --theme ./default/theme.css --content ./docs --output ${{ env.OUTPUT_DIRECTORY }}
+  BUILD_COMMAND: nix run github:lovedeepsingh-07/oro-jackson -- build --config ./default/config.toml --theme ./default/theme.css --content ./docs --output ./build
 jobs:
-  build-and-push-image:
+  build-and-public-docs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -18,6 +18,8 @@ jobs:
       - name: Install Nix
         uses: cachix/install-nix-action@v31
       - run: ${{ env.BUILD_COMMAND }}
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
       - name: Deploy
         uses: cloudflare/wrangler-action@v3
         with:
