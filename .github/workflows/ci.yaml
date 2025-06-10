@@ -1,0 +1,27 @@
+name: ci
+on:
+  push:
+    branches: ["main"]
+env:
+  PROJECT_NAME: oro-jackson
+  OUTPUT_DIRECTORY: build
+  BUILD_COMMAND: nix run . -- build --config ./default/config.toml --theme ./default/theme.css --content ./docs --output ${{ env.OUTPUT_DIRECTORY }}
+jobs:
+  build-and-push-image:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+      - run: ${{ env.BUILD_COMMAND }}
+      - name: Deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy ${{env.OUTPUT_DIRECTORY}} --project-name=${{env.PROJECT_NAME}}
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
