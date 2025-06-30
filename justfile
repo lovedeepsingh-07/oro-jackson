@@ -1,6 +1,12 @@
 default:
 	just -l
 
+lint:
+	cargo check
+	cargo clippy
+fmt:
+	cargo fmt
+
 serve:
 	cargo watch -x "run build --serve --config ./default/config.toml --theme ./default/theme.css --content ../bookshelf/content --output ./build" -i ./_static
 

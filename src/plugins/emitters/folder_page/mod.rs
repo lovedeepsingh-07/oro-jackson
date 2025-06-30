@@ -34,7 +34,11 @@ pub fn folder_page_emitter(
             .index_file_parent_folder(parent_folder)
             .call()?;
 
-        let folder_page_frontmatter = frontmatter::Frontmatter::new(ctx, &index_file);
+        let folder_page_frontmatter = frontmatter::Frontmatter::new(
+            ctx.build_args.content.clone(),
+            ctx.config.title.clone(),
+            &index_file,
+        );
         let folder_page_html =
             pages::folder_page::FolderPage(pages::folder_page::FolderPageProps {
                 frontmatter: folder_page_frontmatter,

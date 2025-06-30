@@ -22,7 +22,11 @@ pub fn file_page_emitter(
             continue;
         };
 
-        let file_page_frontmatter = frontmatter::Frontmatter::new(ctx, &curr_file);
+        let file_page_frontmatter = frontmatter::Frontmatter::new(
+            ctx.build_args.content.clone(),
+            ctx.config.title.clone(),
+            &curr_file,
+        );
         let file_page_html = pages::file_page::FilePage(pages::file_page::FilePageProps {
             content: curr_file.content.clone(),
             show_file_explorer: ctx.config.file_explorer,
