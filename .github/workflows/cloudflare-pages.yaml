@@ -1,4 +1,4 @@
-name: ci
+name: Publish to cloudflare pages
 on:
   push:
     branches: ["main"]
@@ -7,7 +7,7 @@ env:
   OUTPUT_DIRECTORY: build
   BUILD_COMMAND: nix run github:lovedeepsingh-07/oro-jackson -- build --config ./default/config.toml --theme ./default/theme.css --content ./docs --output ./build
 jobs:
-  build-and-public-docs:
+  build-and-publish:
     runs-on: ubuntu-latest
     permissions:
       contents: read
